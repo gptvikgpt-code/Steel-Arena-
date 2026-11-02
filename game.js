@@ -29,6 +29,9 @@ const botLearning={shots:0,attacks:0,blocks:0,frames:0};
 let choice='ronin',weaponChoice='sword',arena='temple',mode='endless',players=[],match=null,lastFx=0,noticeDeadline=0,worldTime=0;
 const MAX_ROUND_TIME=90;
 let botCount=1;
+let firstPerson=false;
+const viewButton=$('view-camera');
+viewButton.addEventListener('click',()=>{firstPerson=!firstPerson;gfx.setFirstPerson(firstPerson);viewButton.textContent=firstPerson?'🎥 ВИД ОТ ТРЕТЬЕГО ЛИЦА':'👁 ВИД ОТ ПЕРВОГО ЛИЦА';viewButton.setAttribute('aria-pressed',String(firstPerson));});
 $('bot-count').addEventListener('input',e=>{botCount=clamp(Number(e.target.value)||1,1,10);$('bot-count-value').textContent=String(botCount)});
 const botRoster=()=>Array.from({length:botCount},(_,i)=>{const ids=['knight','ninja','brute','lancer','mage','ronin'];const type=ids[i%ids.length];const angle=i*Math.PI*2/botCount;const f=freshFighter(i+1,type,Math.cos(angle)*Math.max(5,botCount*1.15),-1,defaultWeapons[type]);f.z=Math.sin(angle)*Math.max(4,botCount*.7);return f;});
 const copyState=()=>({...Object.fromEntries(controls.map(k=>[k,!!input[k]])),axisX:joystickAxis.x,axisY:joystickAxis.y});
@@ -55,7 +58,7 @@ function currentStyles(){return players.map(p=>({...classes[p?.style]||classes.r
 function enterFight(){
  $('menu').classList.add('hidden');$('result-screen').classList.add('hidden');document.body.classList.add('fight');
  $('hint').textContent=role==='solo'?'ТРЕНИРОВКА ПРОТИВ БОТА':role==='host'?'ОНЛАЙН • ВЫ ХОЗЯИН КОМНАТЫ':'ОНЛАЙН • ВЫ ГОСТЬ';
- gfx.setStage(arena,mode,currentStyles());
+ gfx.setStage(arena,mode,currentStyles());gfx.setFirstPerson(firstPerson);
 }
 function newMatch(p1=choice,p2='knight',w1=weaponChoice,w2=defaultWeapons[p2]||'sword'){
  players=role==='solo'?[freshFighter(0,p1,0,1,w1),...botRoster()]:[freshFighter(0,p1,-3.5,1,w1),freshFighter(1,p2,3.5,-1,w2)];
@@ -132,12 +135,13 @@ function handleAttack(attacker,defender){
  const a=attacker.attack;if(!a||a.hit)return;
  const elapsed=a.duration-a.remaining;
  if(elapsed<a.start||elapsed>a.start+a.active)return;
- const distance=(defender.x-attacker.x)*attacker.dir;
- const depth=Math.abs((defender.z||0)-(attacker.z||0));
+ const dx=defender.x-attacker.x,dz=(defender.z||0)-(attacker.z||0);
+ const distance=role==='solo'?Math.hypot(dx,dz):dx*attacker.dir;
+ const depth=role==='solo'?0:Math.abs(dz);
  const tolerance=a.kind==='super'?2.7:1.8;
  if(distance>-.6 && distance<a.range+.12 && depth<(a.kind==='super'?2.5:2.05) && Math.abs(attacker.y-defender.y)<tolerance){
   a.hit=true;
-  const blocked=defender.block&&defender.dir===-attacker.dir;
+  const blocked=defender.block&&(role==='solo'||defender.dir===-attacker.dir);
   const parried=blocked&&defender.parry>0;
   impact(attacker,defender,a,blocked,parried);
  }
@@ -151,12 +155,12 @@ function botControl(f,target,delta){
  f.botThink=.28+Math.random()*.33;
  const shotRatio=botLearning.shots/Math.max(1,botLearning.frames),attackRatio=botLearning.attacks/Math.max(1,botLearning.frames),blockRatio=botLearning.blocks/Math.max(1,botLearning.frames);
  const r={
- left:dst<0&&abs>brave*.75,right:dst>0&&abs>brave*.75,
- up:dz<-.65,down:dz>.65,
+ left:dst<-.5&&Math.hypot(dst,dz)>brave*.75,right:dst>.5&&Math.hypot(dst,dz)>brave*.75,
+ up:dz<-.45,down:dz>.45,
  jump:mode==='platform'&&abs>3&&Math.random()<.08,block:false,shoot:abs>4&&abs<11&&Math.random()<.24,
  dash:abs>6&&Math.random()<.07,light:false,heavy:false,special:false,super:false
  };
- if(abs<brave+.45&&f.attackCool<=0&&f.hitstun<=0){
+ if(Math.hypot(dst,dz)<brave+.45&&f.attackCool<=0&&f.hitstun<=0){
   const prob=Math.random();
   r.block=target.attack!==null&&prob<Math.min(.58,.2+attackRatio*5);
   r.light=!r.block&&prob<.28;
@@ -283,10 +287,10 @@ function logic(dt){
    for(const defender of targets){if(defender.hp>0)handleAttack(attacker,defender);}
   }
  }else{handleAttack(a,b);handleAttack(b,a);}
- if(mode!=='endless')match.time=Math.max(0,match.time-dt);
+ if(mode!=='endless'&&role!=='solo')match.time=Math.max(0,match.time-dt);
  if(role==='solo'){
   const remaining=players.slice(1).filter(p=>p.hp>0).length;
-  if(a.hp<=0||remaining===0||(mode!=='endless'&&match.time<=0))endRound(a.hp>0&&remaining===0?0:1);
+  if(a.hp<=0||remaining===0){match.phase='finished';match.winner=a.hp>0?0:1;announce(a.hp>0?'ВСЕ БОТЫ УНИЧТОЖЕНЫ!':'ТЫ ПОГИБ!',2);setTimeout(()=>{if(match?.phase==='finished')showResult()},1600);}
  }else if(a.hp<=0||b.hp<=0||(mode!=='endless'&&match.time<=0)){
   const win=a.hp===b.hp?(Math.random()<.5?0:1):(a.hp>b.hp?0:1);endRound(win);
  }
@@ -299,7 +303,7 @@ function updateHUD(){
  $('hp2').style.width=(role==='solo'?players.slice(1).reduce((sum,p)=>sum+p.hp,0)/(players.length-1):clamp(players[1].hp,0,100))+'%';
  $('chi1').style.width=clamp(players[0].chi,0,100)+'%';
  $('chi2').style.width=(role==='solo'?0:clamp(players[1].chi,0,100))+'%';
- $('time').textContent=mode==='endless'?'∞':String(Math.ceil(match.time)).padStart(2,'0');
+ $('time').textContent=role==='solo'||mode==='endless'?'∞':String(Math.ceil(match.time)).padStart(2,'0');
  $('rounds').textContent=match.scores.map(x=>'●'.repeat(x)+'○'.repeat(2-x)).join('  ·  ');
 }
 function send(obj){
@@ -355,13 +359,14 @@ function shutdown(){
  remoteInput={};networkTick=0;
 }
 function toMenu(){
+ firstPerson=false;gfx.setFirstPerson(false);viewButton.textContent='👁 ВИД ОТ ПЕРВОГО ЛИЦА';viewButton.setAttribute('aria-pressed','false');
  shutdown();role='menu';match=null;players=[];document.body.classList.remove('fight');
  $('menu').classList.remove('hidden');$('result-screen').classList.add('hidden');$('room-block').classList.add('hidden');
  $('net-status').textContent='';$('announce').classList.remove('visible');noticeDeadline=0;
  gfx.setStage(arena,mode,previewStyles());
 }
 function setNet(s){$('net-status').textContent=s}
-function launchBot(){shutdown();role='solo';newMatch(choice,'knight')}
+function launchBot(){shutdown();botCount=clamp(parseInt($('bot-count').value,10)||1,1,10);$('bot-count-value').textContent=String(botCount);role='solo';newMatch(choice,'knight');$('hint').textContent='ВЫЖИВАНИЕ • УНИЧТОЖЬ ВСЕХ '+botCount+' БОТОВ';}
 function makeCode(){
  const buf=new Uint8Array(6);crypto.getRandomValues(buf);
  return [...buf].map(v=>'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'[v%32]).join('');
