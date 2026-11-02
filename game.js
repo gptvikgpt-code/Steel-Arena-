@@ -30,8 +30,18 @@ let choice='ronin',weaponChoice='sword',arena='temple',mode='endless',players=[]
 const MAX_ROUND_TIME=90;
 let botCount=1;
 let firstPerson=false;
+let aimYaw=Math.PI/2,aimPitch=-.12,aimPointer=null,aimLastX=0,aimLastY=0;
+let flashUntil=0,hitUntil=0;
+function aimVector(){return {x:Math.sin(aimYaw),z:Math.cos(aimYaw)};}
+function syncAim(){const p=players[0];if(p&&firstPerson){const d=aimVector();p.facingX=d.x;p.facingZ=d.z;p.dir=d.x<0?-1:1;}gfx.setAim(aimYaw,aimPitch);}
+const aiming=$('fps-aim-zone');
+aiming.addEventListener('pointerdown',e=>{if(!firstPerson||role==='menu'||aimPointer!==null)return;e.preventDefault();aimPointer=e.pointerId;aimLastX=e.clientX;aimLastY=e.clientY;try{aiming.setPointerCapture(e.pointerId)}catch(_){} });
+aiming.addEventListener('pointermove',e=>{if(e.pointerId!==aimPointer)return;e.preventDefault();aimYaw+=(e.clientX-aimLastX)*.0055;aimPitch=clamp(aimPitch-(e.clientY-aimLastY)*.0045,-1.1,.8);aimLastX=e.clientX;aimLastY=e.clientY;syncAim();});
+const releaseAim=e=>{if(e.pointerId===aimPointer)aimPointer=null;};
+aiming.addEventListener('pointerup',releaseAim);aiming.addEventListener('pointercancel',releaseAim);
+
 const viewButton=$('view-camera');
-viewButton.addEventListener('click',()=>{firstPerson=!firstPerson;gfx.setFirstPerson(firstPerson);viewButton.textContent=firstPerson?'🎥 ВИД ОТ ТРЕТЬЕГО ЛИЦА':'👁 ВИД ОТ ПЕРВОГО ЛИЦА';viewButton.setAttribute('aria-pressed',String(firstPerson));document.body.classList.toggle('first-person',firstPerson);});
+viewButton.addEventListener('click',()=>{firstPerson=!firstPerson;if(firstPerson&&players[0]){const p=players[0];aimYaw=Math.atan2(p.facingX??p.dir??1,p.facingZ??0);aimPitch=-.12;}gfx.setFirstPerson(firstPerson);syncAim();viewButton.textContent=firstPerson?'🎥 ВИД ОТ ТРЕТЬЕГО ЛИЦА':'👁 ВИД ОТ ПЕРВОГО ЛИЦА';viewButton.setAttribute('aria-pressed',String(firstPerson));document.body.classList.toggle('first-person',firstPerson);});
 $('bot-count').addEventListener('input',e=>{botCount=clamp(Number(e.target.value)||1,1,10);$('bot-count-value').textContent=String(botCount)});
 const botRoster=()=>Array.from({length:botCount},(_,i)=>{const ids=['knight','ninja','brute','lancer','mage','ronin'];const type=ids[i%ids.length];const angle=i*Math.PI*2/botCount;const f=freshFighter(i+1,type,Math.cos(angle)*Math.max(5,botCount*1.15),-1,defaultWeapons[type]);f.z=Math.sin(angle)*Math.max(4,botCount*.7);return f;});
 const copyState=()=>({...Object.fromEntries(controls.map(k=>[k,!!input[k]])),axisX:joystickAxis.x,axisY:joystickAxis.y});
@@ -217,7 +227,7 @@ function fighterStep(f,enemy,inp,dt){
  f.x+=f.vx*dt;
  f.z=(f.z||0)+(f.vz||0)*dt;
  // Align first-person camera and firing with the current movement, not the previous frame.
- if(Math.hypot(f.vx||0,f.vz||0)>.2){const len=Math.hypot(f.vx,f.vz);f.facingX=f.vx/len;f.facingZ=f.vz/len;f.dir=f.facingX<-.15?-1:f.facingX>.15?1:f.dir;}
+ if(Math.hypot(f.vx||0,f.vz||0)>.2&&!(firstPerson&&f.id===0)){const len=Math.hypot(f.vx,f.vz);f.facingX=f.vx/len;f.facingZ=f.vz/len;f.dir=f.facingX<-.15?-1:f.facingX>.15?1:f.dir;}
  // Collide with repeated crates and barrels. Sliding on free axis allows going around.
  const collide=(x,z)=>{const chunk=Math.round(x/20);for(let k=chunk-1;k<=chunk+1;k++)for(const side of [-1,1]){
   for(let j=0;j<3;j++){const cx=side*(5.9+j*1.15)+k*20,cz=5.5+(j%2)*1.2;if(Math.abs(x-cx)<.83&&Math.abs(z-cz)<.83&&f.y<.85-.12)return true;}
@@ -252,6 +262,7 @@ function logic(dt){
  if(match.phase!=='fight')return;
  const a=players[0],b=players[1],ctrl1=copyState();
  if(role==='solo'){botLearning.frames++;botLearning.shots+=ctrl1.shoot?1:0;botLearning.attacks+=ctrl1.light||ctrl1.heavy?1:0;botLearning.blocks+=ctrl1.block?1:0;}
+ if(firstPerson)syncAim();
  if(role==='solo'){
   const aliveBots=players.slice(1).filter(p=>p.hp>0);
   if(a.hp>0)fighterStep(a,aliveBots[0]||b,ctrl1,dt);
@@ -261,6 +272,7 @@ function logic(dt){
   if(shooter.hp<=0)continue;
   if(shooter.shotId&&shooter.shotId!==shooter.lastShotId){
    shooter.lastShotId=shooter.shotId;shooter.projectiles=shooter.projectiles||[];
+   if(shooter.id===0&&firstPerson){flashUntil=performance.now()+95;$('fps-muzzle').classList.remove('firing');void $('fps-muzzle').offsetWidth;$('fps-muzzle').classList.add('firing');}
    const vx=shooter.facingX??shooter.dir,vz=shooter.facingZ??0;
    const mag=Math.hypot(vx,vz)||1;
    shooter.projectiles.push({x:shooter.x+vx/mag*.65,z:shooter.z+vz/mag*.65,y:shooter.y+1.4,vx:vx/mag*13,vz:vz/mag*13,life:1.6});
@@ -272,7 +284,7 @@ function logic(dt){
    for(const target of targets){
     if(target.hp<=0)continue;
     if(Math.hypot(p.x-target.x,p.z-target.z)<.95&&Math.abs(p.y-(target.y+1.4))<1.4){
-     p.life=0;const blocked=target.block&&target.dir===-(Math.sign(p.vx)||shooter.dir);
+     p.life=0;if(shooter.id===0&&firstPerson){hitUntil=performance.now()+170;$('fps-crosshair').classList.add('hit');}const blocked=target.block&&target.dir===-(Math.sign(p.vx)||shooter.dir);
      const dmg=blocked?2:role==='solo'&&shooter.id!==0?4:8;
      target.hp=clamp(target.hp-dmg,0,100);target.hitstun=blocked?.08:.17;
      target.chi=clamp(target.chi+4,0,100);gfx.impact(target.x,target.y+1,false,blocked);break;
@@ -344,6 +356,9 @@ tiltButton.addEventListener('click',async()=>{
 function liveFrame(ms){
  const dt=Math.min(.045,Math.max(0,(ms-(liveFrame.previous||ms))/1000));liveFrame.previous=ms;worldTime+=dt;
  pollGamepad();
+ if(firstPerson)syncAim();
+ if(performance.now()>hitUntil)$('fps-crosshair').classList.remove('hit');
+ if(performance.now()>flashUntil)$('fps-muzzle').classList.remove('firing');
  if(role==='solo'||role==='host'){
   logic(dt);if(match)updateHUD();
   if(role==='host'&&match){networkTick+=dt;if(networkTick>.055){networkTick=0;send({t:'state',players,match})}}
@@ -359,7 +374,7 @@ function shutdown(){
  remoteInput={};networkTick=0;
 }
 function toMenu(){
- firstPerson=false;gfx.setFirstPerson(false);document.body.classList.remove('first-person');viewButton.textContent='👁 ВИД ОТ ПЕРВОГО ЛИЦА';viewButton.setAttribute('aria-pressed','false');
+ firstPerson=false;aimPointer=null;gfx.setFirstPerson(false);document.body.classList.remove('first-person');viewButton.textContent='👁 ВИД ОТ ПЕРВОГО ЛИЦА';viewButton.setAttribute('aria-pressed','false');
  shutdown();role='menu';match=null;players=[];document.body.classList.remove('fight');
  $('menu').classList.remove('hidden');$('result-screen').classList.add('hidden');$('room-block').classList.add('hidden');
  $('net-status').textContent='';$('announce').classList.remove('visible');noticeDeadline=0;
