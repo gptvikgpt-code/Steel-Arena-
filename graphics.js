@@ -349,6 +349,8 @@ export function createGraphics(canvas){
  }
  function sync(fighterStates,delta,now){
   if(!fighters.length)return;
+  while(fighters.length<fighterStates.length){const i=fighters.length;const state=fighterStates[i];const fallback={skin:0xe7b48e,color:0x6479aa,trim:0xf4b865,weapon:'sword'};const style=state?.style?({ronin:{color:0x8a3548,trim:0xf4b865},knight:{color:0x406ab1,trim:0xe4c17b},ninja:{color:0x393d62,trim:0x6be0d8},mage:{color:0x653c9c,trim:0x7be4ff},brute:{color:0x9b4c36,trim:0xf9cf78},lancer:{color:0x2d827a,trim:0xc2e899}}[state.style]||{}):{};fighters.push(makeFighter({...fallback,...style,weapon:state?.weapon||'sword'},i));}
+  fighters.forEach((f,i)=>{f.root.visible=i<fighterStates.length&&fighterStates[i]?.hp>0});
   fighterStates.forEach((s,i)=>{
    if(!s)return;const f=fighters[i];if(!f)return;const moving=Math.abs(s.vx)>.4||Math.abs(s.vz||0)>.4;const t=now*.004;
    const action=s.attack?.kind||null;const attackPhase=s.attack?1-Math.max(0,s.attack.remaining)/Math.max(.01,s.attack.duration):0;
@@ -394,10 +396,11 @@ export function createGraphics(canvas){
   }
   // Follow the combat rather than stopping the fighters at invisible walls.
   const a=fighterStates[0],b=fighterStates[1];
-  const targetX=a&&b?(a.x+b.x)/2:0;
-  const separation=a&&b?Math.abs(a.x-b.x):0;
+  const active=fighterStates.filter(p=>p&&p.hp>0);
+  const targetX=active.length?active.reduce((sum,p)=>sum+p.x,0)/active.length:0;
+  const separation=active.length?Math.max(...active.map(p=>p.x))-Math.min(...active.map(p=>p.x)):0;
   cameraCenter+=(targetX-cameraCenter)*Math.min(1,delta*4.5);
-  const desiredWidth=Math.max(baseWidth,separation+8);
+  const desiredWidth=Math.max(baseWidth,separation+12);
   currentViewWidth+=(desiredWidth-currentViewWidth)*Math.min(1,delta*5);
   camera.aspect=1/screenRatio;
   camera.updateProjectionMatrix();
