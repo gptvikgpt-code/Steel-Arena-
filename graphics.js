@@ -289,10 +289,11 @@ export function createGraphics(canvas){
    f.root.position.set(s.x,s.y,s.z??0);f.root.scale.x=s.dir||1;
    // Continuous character turning, idle weight shifts, and attack spins.
    const spin=action==='super'?Math.sin(attackPhase*Math.PI)*Math.PI*1.7:action==='special'?Math.sin(attackPhase*Math.PI)*.9:0;
-   f.root.rotation.y=turn+spin+(s.block?.22:0)+(moving?Math.sin(t*1.8)*.1:0);
+   f.root.rotation.y=(s.dir<0?Math.PI:0)+turn+spin+(s.block?.22:0)+(moving?Math.sin(t*1.8)*.1:0);
    f.root.rotation.z=lean*.28+(s.hitstun>0?-.13*s.dir:0);
    const swing=Math.sin(t*2+i)*.025;
    f.torso.position.y=1.4+(s.grounded?Math.sin(t*2.8+i)*(moving?.085:.055):0);
+   f.torso.rotation.y=Math.sin(t*.9+i)*.11+(s.attack?.kind==='heavy'?.16:0);
    f.torso.rotation.z=(s.vx||0)*-.018+(s.hitstun>0?.13:0)+Math.sin(t*1.3+i)*.075;
    f.head.rotation.z=-(s.vx||0)*.014+Math.sin(t+i)*.09;
    f.head.rotation.y=Math.sin(t*.7+i)*.19;
