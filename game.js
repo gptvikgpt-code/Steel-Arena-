@@ -27,7 +27,7 @@ let role='menu',peer=null,connection=null,remoteInput={},networkTick=0;
 let choice='ronin',weaponChoice='sword',arena='temple',mode='endless',players=[],match=null,lastFx=0,noticeDeadline=0,worldTime=0;
 const MAX_ROUND_TIME=90;
 const copyState=()=>Object.fromEntries(controls.map(k=>[k,!!input[k]]));
-const names={left:'A / ←',right:'D / →',up:'↑',down:'↓',jump:'W / ↑',light:'J',heavy:'K',block:'S',dash:'Shift',special:'L',super:'P'};
+const names={left:'A / ←',right:'D / →',up:'↑',down:'↓',jump:'Space',light:'J',heavy:'K',block:'B',dash:'Shift',special:'L',super:'P'};
 function previewStyles(){return [{...classes[choice],weapon:weaponChoice},{...classes.knight,weapon:'hammer'}]}
 function select(which,value){
  if(which==='hero')choice=value;
@@ -104,6 +104,7 @@ function impact(f,other,attack,blocked,parried){
  const guarded=blocked&&!parried;
  let dmg=parried?0:guarded?Math.max(1,Math.round(attack.dmg*.18)):Math.round(attack.dmg);
  if(role==='solo'&&f.id===1)dmg=Math.max(1,Math.round(dmg*.6));
+ if(role==='solo'&&f.id===0&&!guarded&&!parried)dmg=Math.round(dmg*1.15);
  const back=other.x<f.x?-1:1;
  other.hp=clamp(other.hp-dmg,0,100);
  if(parried){
@@ -129,7 +130,7 @@ function handleAttack(attacker,defender){
  const distance=(defender.x-attacker.x)*attacker.dir;
  const depth=Math.abs((defender.z||0)-(attacker.z||0));
  const tolerance=a.kind==='super'?2.7:1.8;
- if(distance>-.45 && distance<a.range && depth<1.8 && Math.abs(attacker.y-defender.y)<tolerance){
+ if(distance>-.6 && distance<a.range+.12 && depth<(a.kind==='super'?2.5:2.05) && Math.abs(attacker.y-defender.y)<tolerance){
   a.hit=true;
   const blocked=defender.block&&defender.dir===-attacker.dir;
   const parried=blocked&&defender.parry>0;
@@ -167,6 +168,7 @@ function fighterStep(f,enemy,inp,dt){
  f.comboClock=Math.max(0,f.comboClock-dt);
  if(f.comboClock<=0)f.combo=0;
  f.dir=enemy.x>=f.x?1:-1;
+ // Attack direction and facing remain consistent while circling in 3D.
  const canMove=f.hitstun<=0;
  if(inp.block&&!f.prevBlock){f.parry=.16}
  f.prevBlock=!!inp.block;f.parry=Math.max(0,f.parry-dt);
