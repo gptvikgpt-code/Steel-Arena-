@@ -171,7 +171,14 @@ export function createGraphics(canvas){
    if(j%2){box(tile,wood,x,.43,z,.8,.85,.8);box(tile,stone,x,.87,z,.82,.08,.82);}
    else cyl(tile,mat(0xc54843),x,.55,z,.4,.4,1.1,10);
   }
-  // No raised platform tiles: the entire environment is traversable at ground level.
+  // Elevated walkways match fighterStep's x positions, heights and z bounds.
+  if(playMode==='platform'){
+   for(const [px,py,pw] of [[-5.2,2.05,1.54],[0,3.05,1.72],[5.1,2.1,1.54]]){
+    box(tile,stone,px,py-.16,0,pw*2,.28,6.2);
+    box(tile,grassLight,px,py-.04,0,pw*2,.08,6.2);
+    for(const side of [-1,1])box(tile,wood,px+side*(pw-.12),py+.15,0,.1,.24,6.2);
+   }
+  }
   terrain=[tile];
   for(let i=0;i<2;i++)fighters.push(makeFighter(styles[i],i));
   renderer.setClearColor(0x9ad7ec);
