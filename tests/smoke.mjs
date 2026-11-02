@@ -38,7 +38,8 @@ try {
     await page.goto(url, { waitUntil: 'domcontentloaded' });
     await page.waitForFunction(() => document.querySelector('#scene')?.width > 400 && typeof window.Peer === 'function', null, { timeout: 45000 });
     assert.equal(await page.locator('#fighter-list .pick').count(), 6);
-    assert.equal(await page.locator('#mobile-controls [data-key]').count(), 12, 'All 12 touch controls must be present');
+    assert.equal(await page.locator('#mobile-controls [data-key]').count(), 8, 'All 8 touch action buttons must be present');
+    assert.equal(await page.locator('#move-joystick').count(), 1, 'Movement joystick must be present');
   }
   for (const mode of ['duel', 'platform']) {
     await host.locator(`[data-pick="mode"][data-value="${mode}"]`).click();
@@ -54,16 +55,26 @@ try {
     assert.notEqual(await guest.locator('#time').innerText(), '∞');
     assert.ok(await host.locator('#mobile-controls').isVisible());
     assert.ok(await guest.locator('#mobile-controls').isVisible());
-    // Check real two-way input transmission and authoritative damage replication.
-    // Both players start seven units apart. Bring them into striking range using
-    // each device's own mobile controls; then attack from the host.
+    // Test the ACTUAL mobile controls: movement uses a virtual joystick,
+    // not nonexistent data-key="left"/"right" buttons.
+    // Both fighters start seven units apart, so both must move to land a hit.
+    const steer = (page, direction) => page.locator('#move-joystick').evaluate((el, dir) => {
+      const r = el.getBoundingClientRect();
+      const x = r.left + r.width / 2 + (dir === 'right' ? 0.32 : -0.32) * r.width;
+      const y = r.top + r.height / 2;
+      el.dispatchEvent(new PointerEvent('pointerdown', {
+        bubbles: true, pointerId: 23, isPrimary: true, clientX: x, clientY: y
+      }));
+    }, direction);
+    const stopSteering = page => page.locator('#move-joystick').evaluate(el =>
+      el.dispatchEvent(new PointerEvent('pointerup', { bubbles: true, pointerId: 23 })));
     const press = (page, key) => page.locator(`#mobile-controls [data-key="${key}"]`).evaluate(el =>
       el.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true, pointerId: 11 })));
     const release = (page, key) => page.locator(`#mobile-controls [data-key="${key}"]`).evaluate(el =>
       el.dispatchEvent(new PointerEvent('pointerup', { bubbles: true, pointerId: 11 })));
-    await Promise.all([press(host, 'right'), press(guest, 'left')]);
+    await Promise.all([steer(host, 'right'), steer(guest, 'left')]);
     await host.waitForTimeout(550);
-    await Promise.all([release(host, 'right'), release(guest, 'left')]);
+    await Promise.all([stopSteering(host), stopSteering(guest)]);
     await host.waitForTimeout(250);
     await press(host, 'light');
     try {
