@@ -3,7 +3,7 @@
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,maximum-scale=1,user-scalable=no">
 <meta name="theme-color" content="#10172a"><meta name="description" content="Steel Arena — оригинальный 3D-файтинг. Выбирай бойца, тренируйся с ботом или сражайся с другом онлайн в браузере.">
 <title>Steel Arena — 3D Fighting Online</title>
-<link rel="stylesheet" href="./styles.css?v=20261102r">
+<link rel="stylesheet" href="./styles.css?v=20261102s">
 <script defer src="https://unpkg.com/peerjs@1.5.5/dist/peerjs.min.js"></script>
 </head><body>
 <canvas id="scene" aria-label="Трёхмерная боевая арена"></canvas>
@@ -80,7 +80,9 @@
   <button class="option" data-pick="arena" data-value="volcano"><b>🌋 ВУЛКАН</b><small>Лава и чёрные скалы</small></button>
   <button class="option" data-pick="arena" data-value="space"><b>🚀 КОСМОС</b><small>Неоновая станция</small></button>
  </div>
- <div class="section-title">05 / ИГРАТЬ</div>
+ <div class="section-title">05 / ПРОТИВНИКИ</div>
+ <div class="bot-count-control"><label for="bot-count">🤖 КОЛИЧЕСТВО БОТОВ: <strong id="bot-count-value">1</strong></label><input id="bot-count" type="range" min="1" max="10" step="1" value="1"><small>От 1 до 10 ботов одновременно · только одиночный бой</small></div>
+ <div class="section-title">06 / ИГРАТЬ</div>
  <div class="actions">
   <button class="play-btn" id="start-bot">▶ БОЙ С БОТОМ</button>
   <button class="alt-btn" id="create-room">🌐 СОЗДАТЬ ОНЛАЙН</button>
@@ -103,5 +105,5 @@
   <div class="actions"><button class="play-btn" id="play-again">↻ ЕЩЁ РАЗ</button><button class="alt-btn" id="menu-return">В МЕНЮ</button></div>
  </div>
 </div>
-<script type="module" src="./game.js?v=20261102r"></script>
+<script type="module" src="./game.js?v=20261102s"></script>
 </body></html>
