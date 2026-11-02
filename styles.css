@@ -17,3 +17,18 @@
  .weapon-pick{min-height:34px;padding:5px 6px}
  .weapon-pick small{display:none}
 }
+
+/* Retro-action visual pass: sharp comic silhouettes, bright arcade HUD. */
+.fight #vignette{background:radial-gradient(ellipse at 50% 45%,transparent 45%,#0b133555 100%)}
+.fight .fighter-id{font-weight:1000;letter-spacing:.045em;text-shadow:2px 3px 0 #12162a,0 0 8px #080c17;-webkit-text-stroke:.45px #0a1020}
+.fight .health{height:clamp(15px,2.8vh,25px);border:3px solid #f0e4c6;transform:skewX(-12deg);box-shadow:3px 4px 0 #10182c,0 0 10px #000a}
+.fight .health>i{background:linear-gradient(180deg,#b7ff50 0%,#48eb1c 50%,#0aa933 100%)}
+.fight .right .health>i{background:linear-gradient(180deg,#b8ff60,#49e735 55%,#08a940)}
+.fight .timer{color:#fff;text-shadow:3px 4px 0 #101b34,0 0 10px #081b35;-webkit-text-stroke:1px #14203a}
+.fight .touch-btn{border:3px solid #e8eff4;box-shadow:0 0 0 3px #11172d,0 5px 0 #101528,inset 0 0 18px #ffffff33;background:#151a30df}
+.fight .touch-btn[data-key="light"]{background:linear-gradient(140deg,#fa4341,#ad1527)}
+.fight .touch-btn[data-key="heavy"]{background:linear-gradient(140deg,#f76c32,#a72524)}
+.fight .touch-btn[data-key="dash"]{background:linear-gradient(140deg,#416eae,#152e59)}
+.fight .touch-btn[data-key="block"]{background:linear-gradient(140deg,#596d82,#1b2a42)}
+.fight .announce{color:#fff6b8;-webkit-text-stroke:1.5px #1a2135;text-shadow:4px 5px 0 #9b302a,0 8px 12px #000}
+@media(orientation:portrait) and (max-width:650px){.fight #hud{padding-top:12px}.fight .touch-btn{box-shadow:0 0 0 2px #12172b,0 3px 0 #101528,inset 0 0 12px #ffffff24}}
