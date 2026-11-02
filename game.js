@@ -10,44 +10,57 @@ const classes={
  brute:{id:'brute',name:'ТИТАН',color:0x9b4c36,trim:0xf9cf78,skin:0xc98e70,speed:3.6,power:1.35,range:1.95,special:'Землетрясение'},
  lancer:{id:'lancer',name:'КОПЕЙЩИК',color:0x2d827a,trim:0xc2e899,skin:0xedb48b,speed:4.8,power:.98,range:3.45,special:'Прокол небес'}
 };
+const weapons={
+ sword:{id:'sword',name:'МЕЧ',range:2.42,power:1,speed:1,move:1},
+ axe:{id:'axe',name:'ТОПОР',range:2.13,power:1.28,speed:.84,move:.95},
+ spear:{id:'spear',name:'КОПЬЁ',range:3.5,power:.88,speed:.93,move:.97},
+ staff:{id:'staff',name:'ПОСОХ',range:3.05,power:.92,speed:1.06,move:1},
+ daggers:{id:'daggers',name:'КИНЖАЛЫ',range:1.74,power:.75,speed:1.4,move:1.12},
+ hammer:{id:'hammer',name:'МОЛОТ',range:2.02,power:1.44,speed:.72,move:.88}
+};
+const defaultWeapons={ronin:'sword',knight:'hammer',ninja:'daggers',mage:'staff',brute:'axe',lancer:'spear'};
+const equipped=id=>weapons[id]||weapons.sword;
 const gfx=createGraphics($('scene'));
 const controls=['left','right','jump','light','heavy','block','dash','special','super'];
 const input=Object.fromEntries(controls.map(x=>[x,false]));
 let role='menu',peer=null,connection=null,remoteInput={},networkTick=0;
-let choice='ronin',arena='temple',mode='duel',players=[],match=null,lastFx=0,noticeDeadline=0,worldTime=0;
+let choice='ronin',weaponChoice='sword',arena='temple',mode='endless',players=[],match=null,lastFx=0,noticeDeadline=0,worldTime=0;
 const MAX_ROUND_TIME=90;
 const copyState=()=>Object.fromEntries(controls.map(k=>[k,!!input[k]]));
 const names={left:'A / ←',right:'D / →',jump:'W / ↑',light:'J',heavy:'K',block:'S',dash:'Shift',special:'L',super:'P'};
+function previewStyles(){return [{...classes[choice],weapon:weaponChoice},{...classes.knight,weapon:'hammer'}]}
 function select(which,value){
  if(which==='hero')choice=value;
+ if(which==='weapon')weaponChoice=value;
  if(which==='mode')mode=value;
  if(which==='arena')arena=value;
  document.querySelectorAll('[data-pick]').forEach(el=>el.classList.toggle('selected',el.dataset.pick===which&&el.dataset.value===value||el.dataset.pick!==which&&el.classList.contains('selected')));
- if(role==='menu'){gfx.setStage(arena,mode,[classes[choice],classes.knight]);}
+ if(role==='menu'){gfx.setStage(arena,mode,previewStyles());}
 }
 for(const b of document.querySelectorAll('[data-pick]')){
  b.addEventListener('click',()=>select(b.dataset.pick,b.dataset.value));
 }
-function freshFighter(id,style,x,dir){
- return {id,style,x,y:0,vx:0,vy:0,dir,hp:100,chi:0,grounded:true,jumps:0,prevJump:false,block:false,parry:0,
+function freshFighter(id,style,x,dir,weapon=id===0?weaponChoice:(defaultWeapons[style]||'sword')){
+ return {id,style,weapon:equipped(weapon).id,x,y:0,vx:0,vy:0,dir,hp:100,chi:0,grounded:true,jumps:0,prevJump:false,block:false,parry:0,
  hitstun:0,invuln:0,dashTimer:0,dashCool:0,attack:null,attackCool:0,specialCool:0,superCool:0,combo:0,comboClock:0,prevBlock:false};
 }
 function announce(text,seconds=1.2){const el=$('announce');el.textContent=text;el.classList.add('visible');noticeDeadline=performance.now()+seconds*1000;}
 function flash(intensity=.3){const f=$('flash');f.style.opacity=String(intensity);setTimeout(()=>f.style.opacity='0',80)}
-function currentStyles(){return [classes[players[0]?.style]||classes.ronin,classes[players[1]?.style]||classes.knight]}
+function currentStyles(){return [0,1].map(i=>({...classes[players[i]?.style]||classes.ronin,weapon:players[i]?.weapon||'sword'}))}
 function enterFight(){
  $('menu').classList.add('hidden');$('result-screen').classList.add('hidden');document.body.classList.add('fight');
  $('hint').textContent=role==='solo'?'ТРЕНИРОВКА ПРОТИВ БОТА':role==='host'?'ОНЛАЙН • ВЫ ХОЗЯИН КОМНАТЫ':'ОНЛАЙН • ВЫ ГОСТЬ';
  gfx.setStage(arena,mode,currentStyles());
 }
-function newMatch(p1=choice,p2='knight'){
- players=[freshFighter(0,p1,-3.5,1),freshFighter(1,p2,3.5,-1)];
+function newMatch(p1=choice,p2='knight',w1=weaponChoice,w2=defaultWeapons[p2]||'sword'){
+ players=[freshFighter(0,p1,-3.5,1,w1),freshFighter(1,p2,3.5,-1,w2)];
  match={phase:'intro',delay:1.65,round:1,time:MAX_ROUND_TIME,scores:[0,0],winner:null,event:null,eventId:0};
  lastFx=0;enterFight();updateHUD();announce('ПРИГОТОВИТЬСЯ',1.3);
 }
 function nextRound(){
  const s1=players[0].style,s2=players[1].style;
- players=[freshFighter(0,s1,-3.5,1),freshFighter(1,s2,3.5,-1)];
+ const w1=players[0].weapon,w2=players[1].weapon;
+ players=[freshFighter(0,s1,-3.5,1,w1),freshFighter(1,s2,3.5,-1,w2)];
  match.round++;match.time=MAX_ROUND_TIME;match.phase='intro';match.delay=1.4;
  announce('РАУНД '+match.round,1.1);
 }
@@ -64,19 +77,26 @@ function showResult(){
  $('score-text').textContent='Счёт по раундам: '+match.scores.join(' : ');
  $('result-screen').classList.remove('hidden');
 }
-function damageMove(kind,c){
- if(kind==='light')return {kind,duration:.38,start:.09,active:.14,dmg:8*c.power,range:c.range,knock:3.2,cost:0};
- if(kind==='heavy')return {kind,duration:.69,start:.26,active:.14,dmg:15*c.power,range:c.range+.16,knock:6.3,cost:0};
- if(kind==='special')return {kind,duration:.82,start:.2,active:.27,dmg:16*c.power,range:c.id==='mage'?5:c.id==='lancer'?4.5:c.range+1.3,knock:7.4,cost:24};
- return {kind:'super',duration:1.1,start:.29,active:.26,dmg:33*c.power,range:5.4,knock:11,cost:65};
+function weaponRange(f){
+ const c=classes[f.style],w=equipped(f.weapon);
+ return Math.max(1.4,w.range+(c.range-2.4)*.22);
+}
+function damageMove(kind,c,w){
+ const speed=w.speed;
+ const reach=Math.max(1.4,w.range+(c.range-2.4)*.22);
+ const power=c.power*w.power;
+ if(kind==='light')return {kind,duration:.38/speed,start:.09/speed,active:.14/speed,dmg:8*power,range:reach,knock:3.2,cost:0};
+ if(kind==='heavy')return {kind,duration:.69/speed,start:.26/speed,active:.14/speed,dmg:15*power,range:reach+.16,knock:6.3*w.power,cost:0};
+ if(kind==='special')return {kind,duration:.82/speed,start:.2/speed,active:.27/speed,dmg:16*power,range:Math.max(reach+1.1,c.id==='mage'?5:0),knock:7.4,cost:24};
+ return {kind:'super',duration:1.1/speed,start:.29/speed,active:.26/speed,dmg:33*power,range:Math.max(5.4,reach+1.4),knock:11,cost:65};
 }
 function performAttack(f,kind){
  const c=classes[f.style];if(f.attack||f.hitstun>0||f.attackCool>0)return;
  if(kind==='special'&&(f.chi<24||f.specialCool>0))return;
  if(kind==='super'&&(f.chi<65||f.superCool>0))return;
- f.attack={...damageMove(kind,c),remaining:damageMove(kind,c).duration,hit:false};
+ const move=damageMove(kind,c,equipped(f.weapon));f.attack={...move,remaining:move.duration,hit:false};
  f.attackCool=kind==='light'?.13:kind==='heavy'?.32:kind==='special'?.45:.8;
- if(kind==='special'){f.specialCool=1.9;f.chi-=24;if(c.id==='ninja')f.x=clamp(f.x+f.dir*1.4,-9,9)}
+ if(kind==='special'){f.specialCool=1.9;f.chi-=24;if(c.id==='ninja')f.x+=f.dir*1.4}
  if(kind==='super'){f.superCool=3.8;f.chi-=65;announce(c.name+' • СУПЕР!',.75);flash(.3)}
 }
 function impact(f,other,attack,blocked,parried){
@@ -116,7 +136,7 @@ function handleAttack(attacker,defender){
 }
 function botControl(f,target,delta){
  const dst=target.x-f.x,abs=Math.abs(dst);
- const brave=classes[f.style].range+.1;const r={
+ const brave=weaponRange(f)+.1;const r={
  left:dst<0&&abs>brave*.75,right:dst>0&&abs>brave*.75,
  jump:mode==='platform'&&abs>3&&Math.random()<delta*.5,block:false,
  dash:abs>5&&Math.random()<delta*.22,light:false,heavy:false,special:false,super:false
@@ -132,7 +152,7 @@ function botControl(f,target,delta){
  return r;
 }
 function fighterStep(f,enemy,inp,dt){
- const style=classes[f.style];
+ const style=classes[f.style],gear=equipped(f.weapon),runSpeed=style.speed*gear.move;
  f.hitstun=Math.max(0,f.hitstun-dt);f.invuln=Math.max(0,f.invuln-dt);
  f.attackCool=Math.max(0,f.attackCool-dt);f.specialCool=Math.max(0,f.specialCool-dt);
  f.superCool=Math.max(0,f.superCool-dt);f.dashCool=Math.max(0,f.dashCool-dt);
@@ -144,10 +164,10 @@ function fighterStep(f,enemy,inp,dt){
  f.prevBlock=!!inp.block;f.parry=Math.max(0,f.parry-dt);
  f.block=canMove&&!!inp.block&&!f.attack;
  if(canMove){
-  if(inp.dash&&f.dashCool<=0&&!f.block){f.dashCool=1.05;f.dashTimer=.15;f.vx=(inp.left?-1:inp.right?1:f.dir)*style.speed*2.45}
+  if(inp.dash&&f.dashCool<=0&&!f.block){f.dashCool=1.05;f.dashTimer=.15;f.vx=(inp.left?-1:inp.right?1:f.dir)*runSpeed*2.45}
   if(f.dashTimer>0){f.dashTimer-=dt}else{
    const axis=(inp.right?1:0)-(inp.left?1:0);
-   f.vx=axis*style.speed*(f.block?.3:f.attack?.4:1);
+   f.vx=axis*runSpeed*(f.block?.3:f.attack?.4:1);
   }
   const jumpNow=!!inp.jump&&!f.prevJump;f.prevJump=!!inp.jump;
   if(jumpNow&&(f.grounded||(f.style==='ninja'&&f.jumps<2))){
@@ -160,12 +180,13 @@ function fighterStep(f,enemy,inp,dt){
    else if(inp.light)performAttack(f,'light');
   }
  }
- f.x=clamp(f.x+f.vx*dt,-9.4,9.4);
+ f.x+=f.vx*dt; // No horizontal world boundary: camera follows both fighters.
  const oldY=f.y;f.vy-=23*dt;f.y+=f.vy*dt;f.grounded=false;
  let landing=0;
  if(mode==='platform'&&f.vy<=0){
   const platforms=[[-5.2,2.05,1.54],[0,3.05,1.72],[5.1,2.1,1.54]];
-  for(const [px,py,pw]of platforms){if(Math.abs(f.x-px)<pw&&oldY>=py-.1&&f.y<=py)landing=Math.max(landing,py)}
+  const chunk=Math.round(f.x/20);
+  for(let index=chunk-1;index<=chunk+1;index++)for(const [px,py,pw]of platforms){if(Math.abs(f.x-(px+index*20))<pw&&oldY>=py-.1&&f.y<=py)landing=Math.max(landing,py)}
  }
  if(f.y<=landing&&f.vy<=0){f.y=landing;f.vy=0;f.grounded=true;f.jumps=0}
  if(f.attack){
@@ -187,21 +208,21 @@ function logic(dt){
  const a=players[0],b=players[1],ctrl1=copyState(),ctrl2=role==='solo'?botControl(b,a,dt):remoteInput;
  fighterStep(a,b,ctrl1,dt);fighterStep(b,a,ctrl2||{},dt);
  handleAttack(a,b);handleAttack(b,a);
- match.time=Math.max(0,match.time-dt);
- if(a.hp<=0||b.hp<=0||match.time<=0){
+ if(mode!=='endless')match.time=Math.max(0,match.time-dt);
+ if(a.hp<=0||b.hp<=0||(mode!=='endless'&&match.time<=0)){
   let win=a.hp===b.hp?(Math.random()<.5?0:1):(a.hp>b.hp?0:1);
   endRound(win);
  }
 }
 function updateHUD(){
  if(!match||players.length<2)return;
- $('name1').textContent=classes[players[0].style]?.name||'БОЕЦ 1';
- $('name2').textContent=classes[players[1].style]?.name||'БОЕЦ 2';
+ $('name1').textContent=(classes[players[0].style]?.name||'БОЕЦ 1')+' • '+equipped(players[0].weapon).name;
+ $('name2').textContent=(classes[players[1].style]?.name||'БОЕЦ 2')+' • '+equipped(players[1].weapon).name;
  $('hp1').style.width=clamp(players[0].hp,0,100)+'%';
  $('hp2').style.width=clamp(players[1].hp,0,100)+'%';
  $('chi1').style.width=clamp(players[0].chi,0,100)+'%';
  $('chi2').style.width=clamp(players[1].chi,0,100)+'%';
- $('time').textContent=String(Math.ceil(match.time)).padStart(2,'0');
+ $('time').textContent=mode==='endless'?'∞':String(Math.ceil(match.time)).padStart(2,'0');
  $('rounds').textContent=match.scores.map(x=>'●'.repeat(x)+'○'.repeat(2-x)).join('  ·  ');
 }
 function send(obj){
@@ -227,7 +248,7 @@ function toMenu(){
  shutdown();role='menu';match=null;players=[];document.body.classList.remove('fight');
  $('menu').classList.remove('hidden');$('result-screen').classList.add('hidden');$('room-block').classList.add('hidden');
  $('net-status').textContent='';$('announce').classList.remove('visible');noticeDeadline=0;
- gfx.setStage(arena,mode,[classes[choice],classes.knight]);
+ gfx.setStage(arena,mode,previewStyles());
 }
 function setNet(s){$('net-status').textContent=s}
 function launchBot(){shutdown();role='solo';newMatch(choice,'knight')}
@@ -243,26 +264,27 @@ function usePeer(){
 function setHandlers(c,isHost){
  connection=c;
  c.on('open',()=>{
-  if(!isHost){setNet('Связь установлена, ждём начала боя…');send({t:'hello',style:choice})}
+  if(!isHost){setNet('Связь установлена, ждём начала боя…');send({t:'hello',style:choice,weapon:weaponChoice})}
  });
  c.on('data',msg=>{
   if(!msg||typeof msg!=='object')return;
   if(isHost){
    if(msg.t==='hello'){
     const guest=classes[msg.style]?msg.style:'ninja';
-    newMatch(choice,guest);
-    send({t:'start',mode,arena,first:choice,second:guest});
+    const guestWeapon=equipped(msg.weapon).id;
+    newMatch(choice,guest,weaponChoice,guestWeapon);
+    send({t:'start',mode,arena,first:choice,second:guest,firstWeapon:weaponChoice,secondWeapon:guestWeapon});
     setNet('Друг подключён. Бой начался!');
    }
    if(msg.t==='input'&&msg.input){
     remoteInput=Object.fromEntries(controls.map(k=>[k,!!msg.input[k]]));
    }
-   if(msg.t==='rematch'&&match?.phase==='finished'){newMatch(players[0].style,players[1].style);send({t:'start',mode,arena,first:players[0].style,second:players[1].style})}
+   if(msg.t==='rematch'&&match?.phase==='finished'){const [p1,p2]=players;newMatch(p1.style,p2.style,p1.weapon,p2.weapon);send({t:'start',mode,arena,first:p1.style,second:p2.style,firstWeapon:p1.weapon,secondWeapon:p2.weapon})}
   }else{
    if(msg.t==='start'){
-    mode=msg.mode==='platform'?'platform':'duel';
+    mode=['duel','platform','endless'].includes(msg.mode)?msg.mode:'endless';
     arena=['temple','grove','city'].includes(msg.arena)?msg.arena:'temple';
-    role='guest';newMatch(classes[msg.first]?msg.first:'ronin',classes[msg.second]?msg.second:'knight');
+    role='guest';newMatch(classes[msg.first]?msg.first:'ronin',classes[msg.second]?msg.second:'knight',equipped(msg.firstWeapon).id,equipped(msg.secondWeapon).id);
    }
    if(msg.t==='state'&&Array.isArray(msg.players)&&msg.players.length===2&&msg.match){
     const oldId=lastFx;players=msg.players;match=msg.match;
@@ -317,7 +339,7 @@ $('menu-return').addEventListener('click',toMenu);
 $('play-again').addEventListener('click',()=>{
  $('result-screen').classList.add('hidden');
  if(role==='solo')newMatch(choice,'knight');
- else if(role==='host'){const p0=players[0].style,p1=players[1].style;newMatch(p0,p1);send({t:'start',mode,arena,first:p0,second:p1})}
+ else if(role==='host'){const [p0,p1]=players;newMatch(p0.style,p1.style,p0.weapon,p1.weapon);send({t:'start',mode,arena,first:p0.style,second:p1.style,firstWeapon:p0.weapon,secondWeapon:p1.weapon})}
  else if(role==='guest')send({t:'rematch'});
 });
 $('copy-invite').addEventListener('click',async()=>{
@@ -327,4 +349,4 @@ $('copy-invite').addEventListener('click',async()=>{
 bindTouch();
 const query=new URLSearchParams(location.search);const invite=query.get('join');
 if(invite){$('join-code').value=invite.replace(/[^A-Za-z2-9]/g,'').slice(0,6).toUpperCase()}
-gfx.setStage(arena,mode,[classes[choice],classes.knight]);requestAnimationFrame(liveFrame);
+gfx.setStage(arena,mode,previewStyles());requestAnimationFrame(liveFrame);
