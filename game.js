@@ -407,7 +407,14 @@ function setHandlers(c,isHost){
     setNet('Друг подключён. Бой начался!');
    }
    if(msg.t==='input'&&msg.input){
-    remoteInput=Object.fromEntries(controls.map(k=>[k,!!msg.input[k]]));
+    // Keep the guest's analog thumbstick axes (not only digital directions).
+    // Clamp untrusted network input before applying it to the host simulation.
+    const ax=Number(msg.input.axisX),ay=Number(msg.input.axisY);
+    remoteInput={
+     ...Object.fromEntries(controls.map(k=>[k,!!msg.input[k]])),
+     ...(Number.isFinite(ax)?{axisX:clamp(ax,-1,1)}:{}),
+     ...(Number.isFinite(ay)?{axisY:clamp(ay,-1,1)}:{})
+    };
    }
    if(msg.t==='rematch'&&match?.phase==='finished'){const [p1,p2]=players;newMatch(p1.style,p2.style,p1.weapon,p2.weapon);send({t:'start',mode,arena,first:p1.style,second:p2.style,firstWeapon:p1.weapon,secondWeapon:p2.weapon})}
   }else{
