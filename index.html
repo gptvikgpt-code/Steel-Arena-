@@ -3,7 +3,7 @@
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,maximum-scale=1,user-scalable=no">
 <meta name="theme-color" content="#10172a"><meta name="description" content="Steel Arena — оригинальный 3D-файтинг. Выбирай бойца, тренируйся с ботом или сражайся с другом онлайн в браузере.">
 <title>Steel Arena — 3D Fighting Online</title>
-<link rel="stylesheet" href="./styles.css?v=20261102n">
+<link rel="stylesheet" href="./styles.css?v=20261102o">
 <script defer src="https://unpkg.com/peerjs@1.5.5/dist/peerjs.min.js"></script>
 </head><body>
 <canvas id="scene" aria-label="Трёхмерная боевая арена"></canvas>
@@ -22,11 +22,14 @@
 <div class="touch-side touch-left">
  <div id="move-joystick" class="move-joystick" role="application" aria-label="Джойстик передвижения"><div id="joystick-knob" class="joystick-knob"></div></div>
 </div>
-<div class="touch-side touch-actions">
- <div class="touch-stack"><button class="touch-btn mini" data-key="jump">ПРЫЖОК</button><button class="touch-btn mini" data-key="dash">РЫВОК</button></div>
- <div class="touch-stack"><button class="touch-btn mini" data-key="block">БЛОК</button><button class="touch-btn mini" data-key="special">ТЕХН.</button></div>
- <div class="touch-stack"><button class="touch-btn" data-key="light">УДАР</button><button class="touch-btn mini" data-key="super">СУПЕР</button></div>
- <button class="touch-btn mini" data-key="shoot">🔥 ОГОНЬ</button><button class="touch-btn" data-key="heavy">СИЛА</button>
+<div class="touch-side touch-actions gamepad-actions">
+ <div class="shoulder-buttons"><button class="touch-btn mini" data-key="block">L1 БЛОК</button><button class="touch-btn mini" data-key="dash">L2 РЫВОК</button><button class="touch-btn mini" data-key="shoot">R2 ОГОНЬ</button><button class="touch-btn mini" data-key="super">R1 СУПЕР</button></div>
+ <div class="face-buttons">
+  <button class="touch-btn gamepad-face face-y" data-key="heavy" aria-label="Сильный удар">Y<span>СИЛА</span></button>
+  <button class="touch-btn gamepad-face face-x" data-key="light" aria-label="Удар">X<span>УДАР</span></button>
+  <button class="touch-btn gamepad-face face-b" data-key="special" aria-label="Специальная атака">B<span>СПЕЦ</span></button>
+  <button class="touch-btn gamepad-face face-a" data-key="jump" aria-label="Прыжок">A<span>ПРЫЖОК</span></button>
+ </div>
 </div></div>
 <div id="menu" class="menu">
 <div class="menu-panel">
@@ -91,5 +94,5 @@
   <div class="actions"><button class="play-btn" id="play-again">↻ ЕЩЁ РАЗ</button><button class="alt-btn" id="menu-return">В МЕНЮ</button></div>
  </div>
 </div>
-<script type="module" src="./game.js?v=20261102n"></script>
+<script type="module" src="./game.js?v=20261102o"></script>
 </body></html>
