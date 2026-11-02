@@ -282,6 +282,22 @@ export function createGraphics(canvas){
    sprite.position.set(state.x,1.25,state.z||0);sprite.scale.set(2.2,2.2,1);world.add(sprite);
    poopMarkers.set(i,{sprite,texture});
   });
+  // Floating player nameplates follow fighters and disappear on defeat.
+  fighterStates.forEach((state,i)=>{
+   if(!state||!fighters[i])return;
+   const f=fighters[i],name=String(state.nick||('БОТ '+i)).slice(0,16);
+   if(f.nameplateText!==name){
+    if(f.nameplate){f.root.remove(f.nameplate);f.nameplate.material.map.dispose();f.nameplate.material.dispose();}
+    const canvas=document.createElement('canvas');canvas.width=512;canvas.height=128;
+    const ctx=canvas.getContext('2d');ctx.fillStyle=i===0?'rgba(11,57,82,.85)':'rgba(80,23,27,.85)';
+    ctx.beginPath();ctx.roundRect(10,10,492,108,25);ctx.fill();
+    ctx.strokeStyle=i===0?'#86edff':'#ffb4a4';ctx.lineWidth=5;ctx.stroke();
+    ctx.fillStyle='#ffffff';ctx.font='bold 56px sans-serif';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText(name,256,66,455);
+    const texture=new THREE.CanvasTexture(canvas);texture.colorSpace=THREE.SRGBColorSpace;
+    f.nameplate=new THREE.Sprite(new THREE.SpriteMaterial({map:texture,transparent:true,depthWrite:false,depthTest:false}));
+    f.nameplate.position.set(0,3.4,0);f.nameplate.scale.set(2.7,.68,1);f.root.add(f.nameplate);f.nameplateText=name;
+   }
+  });
   fighters.forEach((f,i)=>{f.root.visible=i<fighterStates.length&&fighterStates[i]?.hp>0});
   fighterStates.forEach((s,i)=>{
    if(!s)return;const f=fighters[i];if(!f)return;const moving=Math.abs(s.vx)>.4||Math.abs(s.vz||0)>.4;const t=now*.004;
