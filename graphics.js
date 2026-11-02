@@ -251,19 +251,29 @@ export function createGraphics(canvas){
  function sync(fighterStates,delta,now){
   if(!fighters.length)return;
   fighterStates.forEach((s,i)=>{
-   if(!s)return;const f=fighters[i];if(!f)return;const moving=Math.abs(s.vx)>.4;const t=now*.004;
-   f.root.position.set(s.x,s.y,s.z??(i===0?2.3:-2.3));f.root.scale.x=s.dir||1;
+   if(!s)return;const f=fighters[i];if(!f)return;const moving=Math.abs(s.vx)>.4||Math.abs(s.vz||0)>.4;const t=now*.004;
+   const action=s.attack?.kind||null;const attackPhase=s.attack?1-Math.max(0,s.attack.remaining)/Math.max(.01,s.attack.duration):0;
+   const turn=Math.sin(now*.0008+i*1.6)*.18;
+   const lean=Math.sin(now*.002+i*2)*.065;
+   f.root.position.set(s.x,s.y,s.z??0);f.root.scale.x=s.dir||1;
+   // Continuous character turning, idle weight shifts, and attack spins.
+   const spin=action==='super'?Math.sin(attackPhase*Math.PI)*Math.PI*1.7:action==='special'?Math.sin(attackPhase*Math.PI)*.9:0;
+   f.root.rotation.y=turn+spin+(s.block?.22:0)+(moving?Math.sin(t*1.8)*.1:0);
+   f.root.rotation.z=lean*.28+(s.hitstun>0?-.13*s.dir:0);
    const swing=Math.sin(t*2+i)*.025;
-   f.torso.position.y=1.4+(s.grounded?Math.sin(t*2.8+i)*.035:0);
-   f.torso.rotation.z=(s.vx||0)*-.018+(s.hitstun>0?.13:0);
-   f.head.rotation.z=-(s.vx||0)*.014+Math.sin(t+i)*.023;
-   f.legs[0].rotation.z=moving?Math.sin(t*5.5)*.44:0;
-   f.legs[1].rotation.z=moving?-Math.sin(t*5.5)*.44:0;
-   f.arms[0].rotation.z=s.block?.8: moving?Math.sin(t*5.5)*.2:-.14;
+   f.torso.position.y=1.4+(s.grounded?Math.sin(t*2.8+i)*(moving?.085:.055):0);
+   f.torso.rotation.z=(s.vx||0)*-.018+(s.hitstun>0?.13:0)+Math.sin(t*1.3+i)*.075;
+   f.head.rotation.z=-(s.vx||0)*.014+Math.sin(t+i)*.09;
+   f.head.rotation.y=Math.sin(t*.7+i)*.19;
+   f.legs[0].rotation.z=moving?Math.sin(t*5.5)*.65:Math.sin(t*.9)*.075;
+   f.legs[1].rotation.z=moving?-Math.sin(t*5.5)*.65:-Math.sin(t*.9)*.075;
+   f.arms[0].rotation.z=s.block?.8:moving?Math.sin(t*5.5)*.3:-.14+Math.sin(t*1.3)*.16;
    let hitAnim=0;
    if(s.attack&&s.attack.duration){const progress=1-Math.max(0,s.attack.remaining)/s.attack.duration;hitAnim=Math.sin(Math.min(1,progress)*Math.PI)*1.95;}
-   f.arms[1].rotation.z=-.25-hitAnim+(moving?Math.sin(t*5.5+.7)*.1:0);
-   f.cape.rotation.x=.05+(moving?.3:0)+(s.y>.15?.4:0);
+   f.arms[1].rotation.z=-.25-hitAnim+(moving?Math.sin(t*5.5+.7)*.2:Math.sin(t*1.4+i)*.15);
+   f.arms[1].rotation.x=action?Math.sin(attackPhase*Math.PI)*-.9:Math.sin(t*.8)*.1;
+   f.weapon.rotation.y=action?Math.sin(attackPhase*Math.PI)*.55:Math.sin(t*.9)*.1;
+   f.cape.rotation.x=.08+(moving?.3:0)+(s.y>.15?.4:0)+Math.sin(t*2+i)*.19;
    f.aura.material.opacity=.18+(s.chi||0)/350;
    f.aura.scale.setScalar(1+(s.chi||0)/230);
    f.head.scale.y=s.hitstun>0?.93:1;
