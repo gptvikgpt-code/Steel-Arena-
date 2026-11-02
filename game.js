@@ -31,7 +31,7 @@ const MAX_ROUND_TIME=90;
 let botCount=1;
 let firstPerson=false;
 const viewButton=$('view-camera');
-viewButton.addEventListener('click',()=>{firstPerson=!firstPerson;gfx.setFirstPerson(firstPerson);viewButton.textContent=firstPerson?'🎥 ВИД ОТ ТРЕТЬЕГО ЛИЦА':'👁 ВИД ОТ ПЕРВОГО ЛИЦА';viewButton.setAttribute('aria-pressed',String(firstPerson));});
+viewButton.addEventListener('click',()=>{firstPerson=!firstPerson;gfx.setFirstPerson(firstPerson);viewButton.textContent=firstPerson?'🎥 ВИД ОТ ТРЕТЬЕГО ЛИЦА':'👁 ВИД ОТ ПЕРВОГО ЛИЦА';viewButton.setAttribute('aria-pressed',String(firstPerson));document.body.classList.toggle('first-person',firstPerson);});
 $('bot-count').addEventListener('input',e=>{botCount=clamp(Number(e.target.value)||1,1,10);$('bot-count-value').textContent=String(botCount)});
 const botRoster=()=>Array.from({length:botCount},(_,i)=>{const ids=['knight','ninja','brute','lancer','mage','ronin'];const type=ids[i%ids.length];const angle=i*Math.PI*2/botCount;const f=freshFighter(i+1,type,Math.cos(angle)*Math.max(5,botCount*1.15),-1,defaultWeapons[type]);f.z=Math.sin(angle)*Math.max(4,botCount*.7);return f;});
 const copyState=()=>({...Object.fromEntries(controls.map(k=>[k,!!input[k]])),axisX:joystickAxis.x,axisY:joystickAxis.y});
@@ -359,7 +359,7 @@ function shutdown(){
  remoteInput={};networkTick=0;
 }
 function toMenu(){
- firstPerson=false;gfx.setFirstPerson(false);viewButton.textContent='👁 ВИД ОТ ПЕРВОГО ЛИЦА';viewButton.setAttribute('aria-pressed','false');
+ firstPerson=false;gfx.setFirstPerson(false);document.body.classList.remove('first-person');viewButton.textContent='👁 ВИД ОТ ПЕРВОГО ЛИЦА';viewButton.setAttribute('aria-pressed','false');
  shutdown();role='menu';match=null;players=[];document.body.classList.remove('fight');
  $('menu').classList.remove('hidden');$('result-screen').classList.add('hidden');$('room-block').classList.add('hidden');
  $('net-status').textContent='';$('announce').classList.remove('visible');noticeDeadline=0;
