@@ -36,7 +36,7 @@ try {
     page.on('pageerror', err => errors.push(`${name}: ${err.message}`));
     page.on('console', msg => { if (msg.type() === 'error' && /uncaught|peerjs|failed to fetch dynamically imported|module script/i.test(msg.text())) errors.push(`${name}: ${msg.text()}`); });
     await page.goto(url, { waitUntil: 'domcontentloaded' });
-    await page.waitForFunction(() => document.querySelector('#scene')?.width > 0 && typeof window.Peer === 'function', null, { timeout: 45000 });
+    await page.waitForFunction(() => document.querySelector('#scene')?.width > 400 && typeof window.Peer === 'function', null, { timeout: 45000 });
     assert.equal(await page.locator('#fighter-list .pick').count(), 6);
     assert.equal(await page.locator('#mobile-controls [data-key]').count(), 9);
   }
