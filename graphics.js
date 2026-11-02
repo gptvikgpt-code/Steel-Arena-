@@ -41,6 +41,7 @@ export function createGraphics(canvas){
  let world=new THREE.Group();scene.add(world);let fighters=[],particles=[],glows=[],arenaColor=0xffac65,mode='duel',camShake=0,blur=0;
  let terrain=[],tilePrototype=null,backdrop=null,skyPlane=null,illustratedBackdrop=null,shotMeshes=[],cameraCenter=0,baseWidth=36,screenRatio=1,currentViewWidth=36;
  let tiltTarget={x:0,y:0},tiltNow={x:0,y:0},firstPerson=false;
+ let poopMarkers=new Map();
  function setFirstPerson(enabled){firstPerson=!!enabled;camera.fov=firstPerson?82:48;camera.updateProjectionMatrix();}
  function setCameraTilt(x=0,y=0){tiltTarget.x=THREE.MathUtils.clamp(x,-1,1);tiltTarget.y=THREE.MathUtils.clamp(y,-1,1)}
  function skyTexture(colors){
@@ -95,7 +96,7 @@ export function createGraphics(canvas){
   for(let i=0;i<4;i++){const vine=cyl(tree,mat(0x3b7c39),Math.sin(i*2)*1.1,4.6,Math.cos(i*2)*1.1,.035,.05,2.4,5);vine.rotation.z=.13;}
  }
  function setStage(arena,playMode,styles){
-  scene.remove(world);world=new THREE.Group();scene.add(world);particles=[];glows=[];fighters=[];mode=playMode;cameraCenter=0;currentViewWidth=baseWidth;terrain=[];shotMeshes=[];
+  scene.remove(world);world=new THREE.Group();scene.add(world);particles=[];glows=[];fighters=[];mode=playMode;cameraCenter=0;currentViewWidth=baseWidth;terrain=[];shotMeshes=[];poopMarkers=new Map();
   backdrop=new THREE.Group();world.add(backdrop);
   const tile=new THREE.Group();tilePrototype=tile;
   const p=PALETTES[arena]||PALETTES.temple;arenaColor=p.accent;scene.fog.density=arena==='grove'?.019:.013;scene.fog.color.set(p.sky[0]);sun.color.setHex(p.accent);fill.color.setHex(arena==='grove'?0xa1ddff:0x76a2ff);
@@ -351,6 +352,17 @@ export function createGraphics(canvas){
  function sync(fighterStates,delta,now){
   if(!fighters.length)return;
   while(fighters.length<fighterStates.length){const i=fighters.length;const state=fighterStates[i];const fallback={skin:0xe7b48e,color:0x6479aa,trim:0xf4b865,weapon:'sword'};const style=state?.style?({ronin:{color:0x8a3548,trim:0xf4b865},knight:{color:0x406ab1,trim:0xe4c17b},ninja:{color:0x393d62,trim:0x6be0d8},mage:{color:0x653c9c,trim:0x7be4ff},brute:{color:0x9b4c36,trim:0xf9cf78},lancer:{color:0x2d827a,trim:0xc2e899}}[state.style]||{}):{};fighters.push(makeFighter({...fallback,...style,weapon:state?.weapon||'sword'},i));}
+  // Defeated enemies become a cartoon poop emoji trophy, while their 3D fighter vanishes.
+  fighterStates.forEach((state,i)=>{
+   if(!state||i===0||state.hp>0||poopMarkers.has(i))return;
+   const canvas=document.createElement('canvas');canvas.width=128;canvas.height=128;
+   const ctx=canvas.getContext('2d');ctx.font='104px "Apple Color Emoji","Noto Color Emoji","Segoe UI Emoji",sans-serif';
+   ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText('💩',64,69);
+   const texture=new THREE.CanvasTexture(canvas);texture.colorSpace=THREE.SRGBColorSpace;
+   const sprite=new THREE.Sprite(new THREE.SpriteMaterial({map:texture,transparent:true,depthWrite:false}));
+   sprite.position.set(state.x,1.25,state.z||0);sprite.scale.set(2.2,2.2,1);world.add(sprite);
+   poopMarkers.set(i,{sprite,texture});
+  });
   fighters.forEach((f,i)=>{f.root.visible=i<fighterStates.length&&fighterStates[i]?.hp>0});
   fighterStates.forEach((s,i)=>{
    if(!s)return;const f=fighters[i];if(!f)return;const moving=Math.abs(s.vx)>.4||Math.abs(s.vz||0)>.4;const t=now*.004;
