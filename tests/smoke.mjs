@@ -126,9 +126,14 @@ try {
     assert.ok(Math.abs(hostHp - guestHp) <= 15, 'Guest health must follow authoritative host health');
     if (errors.length) throw new Error('Browser errors during active match:\\n' + errors.join('\\n'));
     console.log(`${mode}: two clients connected, mobile input and synchronized damage verified`);
-    // Close both peers together. PeerJS may emit a harmless buffered-send
-    // warning while the other side's RTCDataChannel is shutting down.
-    await Promise.all([host.locator('#back-menu').click(), guest.locator('#back-menu').click()]);
+    // A guest disconnecting while holding a direction must not leave a
+    // permanently pressed remote joystick on the host.
+    await steer(guest, 'right');
+    await host.waitForFunction(() => window.__arenaSmoke?.()?.remote?.axisX > 0.7, null, { timeout: 10000 });
+    await guest.locator('#back-menu').click();
+    await host.waitForFunction(() => Object.keys(window.__arenaSmoke?.()?.remote || {}).length === 0, null, { timeout: 12000 });
+    await host.locator('#back-menu').click();
+    // PeerJS may emit a harmless buffered-send warning while closing RTCDataChannel.
     await host.waitForTimeout(350);
     const teardownErrors = errors.filter(msg => !msg.includes('Error sending binary data through RTCDataChannel.'));
     if (teardownErrors.length) throw new Error('Unexpected disconnect errors:\\n' + teardownErrors.join('\\n'));
