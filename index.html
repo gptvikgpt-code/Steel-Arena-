@@ -3,7 +3,7 @@
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,maximum-scale=1,user-scalable=no">
 <meta name="theme-color" content="#10172a"><meta name="description" content="Steel Arena — оригинальный 3D-файтинг. Выбирай бойца, тренируйся с ботом или сражайся с другом онлайн в браузере.">
 <title>Steel Arena — 3D Fighting Online</title>
-<link rel="stylesheet" href="./styles.css?v=20261102o">
+<link rel="stylesheet" href="./styles.css?v=20261102p">
 <script defer src="https://unpkg.com/peerjs@1.5.5/dist/peerjs.min.js"></script>
 </head><body>
 <canvas id="scene" aria-label="Трёхмерная боевая арена"></canvas>
@@ -15,6 +15,7 @@
  <div class="fighter-hud right"><div id="name2" class="fighter-id">СТРАЖ</div><div class="health"><i id="hp2"></i></div><div class="energy"><i id="chi2"></i></div></div>
 </div></div>
 <div id="hint"></div>
+<button id="tilt-camera" class="tilt-camera" type="button" aria-pressed="false">📱 КАМЕРА: ВЫКЛ</button>
 <button class="menu-btn" id="back-menu" aria-label="В главное меню">☰ МЕНЮ</button>
 <div class="announce" id="announce"></div>
 <div class="bottom-tip">A/D — в стороны · W/S — в глубину · Space — прыжок · B — блок · J — удар · K — сильный · Shift — рывок · L — техника · P — супер · F — стрелять</div>
@@ -94,5 +95,5 @@
   <div class="actions"><button class="play-btn" id="play-again">↻ ЕЩЁ РАЗ</button><button class="alt-btn" id="menu-return">В МЕНЮ</button></div>
  </div>
 </div>
-<script type="module" src="./game.js?v=20261102o"></script>
+<script type="module" src="./game.js?v=20261102p"></script>
 </body></html>
