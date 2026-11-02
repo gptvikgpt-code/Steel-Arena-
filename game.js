@@ -225,7 +225,6 @@ function fighterStep(f,enemy,inp,dt){
    else if(inp.light)performAttack(f,'light');
   }
  }
- const oldX=f.x,oldZ=f.z||0;
  const props=[];
  const mazeWalls=[[-7,-19,1.1,11],[-3.5,-15,7,.9],[5,-19,1.1,12],[-7,1,1.1,13],[-3,5,6,.9],[7,0,1.1,14],[-5,20,1.1,10],[4,19,1.1,10],[-1,25,8,.9],[-5,-1,5,.9],[4,-8,5,.9]];
  const obstacles=mazeWalls.map(([x,z,w,d])=>({x,z,halfX:w/2,halfZ:d/2,height:1.5}));
