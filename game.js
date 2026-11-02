@@ -21,13 +21,13 @@ const weapons={
 const defaultWeapons={ronin:'sword',knight:'hammer',ninja:'daggers',mage:'staff',brute:'axe',lancer:'spear'};
 const equipped=id=>weapons[id]||weapons.sword;
 const gfx=createGraphics($('scene'));
-const controls=['left','right','up','down','jump','light','heavy','block','dash','special','super'];
+const controls=['left','right','up','down','jump','light','heavy','block','dash','special','super','shoot'];
 const input=Object.fromEntries(controls.map(x=>[x,false]));
 let role='menu',peer=null,connection=null,remoteInput={},networkTick=0;
 let choice='ronin',weaponChoice='sword',arena='temple',mode='endless',players=[],match=null,lastFx=0,noticeDeadline=0,worldTime=0;
 const MAX_ROUND_TIME=90;
 const copyState=()=>Object.fromEntries(controls.map(k=>[k,!!input[k]]));
-const names={left:'A / ←',right:'D / →',up:'↑',down:'↓',jump:'Space',light:'J',heavy:'K',block:'B',dash:'Shift',special:'L',super:'P'};
+const names={left:'A / ←',right:'D / →',up:'↑',down:'↓',jump:'Space',light:'J',heavy:'K',block:'B',dash:'Shift',special:'L',super:'P',shoot:'F'};
 function previewStyles(){return [{...classes[choice],weapon:weaponChoice},{...classes.knight,weapon:'hammer'}]}
 function select(which,value){
  if(which==='hero')choice=value;
@@ -42,7 +42,7 @@ for(const b of document.querySelectorAll('[data-pick]')){
 }
 function freshFighter(id,style,x,dir,weapon=id===0?weaponChoice:(defaultWeapons[style]||'sword')){
  return {id,style,weapon:equipped(weapon).id,x,y:0,z:0,vx:0,vz:0,vy:0,dir,hp:100,chi:0,grounded:true,jumps:0,prevJump:false,block:false,parry:0,
- hitstun:0,invuln:0,dashTimer:0,dashCool:0,attack:null,attackCool:0,specialCool:0,superCool:0,combo:0,comboClock:0,prevBlock:false};
+ hitstun:0,invuln:0,dashTimer:0,dashCool:0,attack:null,attackCool:0,specialCool:0,superCool:0,combo:0,comboClock:0,prevBlock:false,shotCool:0,shotId:0,shotTime:0};
 }
 function announce(text,seconds=1.2){const el=$('announce');el.textContent=text;el.classList.add('visible');noticeDeadline=performance.now()+seconds*1000;}
 function flash(intensity=.3){const f=$('flash');f.style.opacity=String(intensity);setTimeout(()=>f.style.opacity='0',80)}
@@ -147,7 +147,7 @@ function botControl(f,target,delta){
  const r={
  left:dst<0&&abs>brave*.75,right:dst>0&&abs>brave*.75,
  up:dz<-.65,down:dz>.65,
- jump:mode==='platform'&&abs>3&&Math.random()<.08,block:false,
+ jump:mode==='platform'&&abs>3&&Math.random()<.08,block:false,shoot:abs>4&&abs<11&&Math.random()<.24,
  dash:abs>6&&Math.random()<.07,light:false,heavy:false,special:false,super:false
  };
  if(abs<brave+.45&&f.attackCool<=0&&f.hitstun<=0){
@@ -158,13 +158,16 @@ function botControl(f,target,delta){
   r.special=!r.block&&f.chi>=24&&prob>.92;
   r.super=!r.block&&f.chi>=65&&prob>.99;
  }
+ // Sidestep props if the direct approach is obstructed.
+ const nextX=f.x+Math.sign(dst)*.8;
+ for(const side of [-1,1])for(let j=0;j<3;j++){const cx=side*(5.9+j*1.15)+Math.round(nextX/20)*20,cz=5.5+(j%2)*1.2;if(Math.abs(nextX-cx)<1.3&&Math.abs((f.z||0)-cz)<1.3){r.up=(f.z||0)>=cz;r.down=!r.up;}}
  f.botLast=r;return r;
 }
 function fighterStep(f,enemy,inp,dt){
  const style=classes[f.style],gear=equipped(f.weapon),runSpeed=style.speed*gear.move;
  f.hitstun=Math.max(0,f.hitstun-dt);f.invuln=Math.max(0,f.invuln-dt);
  f.attackCool=Math.max(0,f.attackCool-dt);f.specialCool=Math.max(0,f.specialCool-dt);
- f.superCool=Math.max(0,f.superCool-dt);f.dashCool=Math.max(0,f.dashCool-dt);
+ f.superCool=Math.max(0,f.superCool-dt);f.dashCool=Math.max(0,f.dashCool-dt);f.shotCool=Math.max(0,(f.shotCool||0)-dt);
  f.comboClock=Math.max(0,f.comboClock-dt);
  if(f.comboClock<=0)f.combo=0;
  f.dir=enemy.x>=f.x?1:-1;
@@ -186,14 +189,23 @@ function fighterStep(f,enemy,inp,dt){
    f.vy=mode==='platform'?12.2:8.4;f.grounded=false;f.jumps++;
   }
   if(!f.block){
+   if(inp.shoot&&f.shotCool<=0&&!f.attack){f.shotCool=.75;f.shotId=(f.shotId||0)+1;f.shotTime=.4;}
    if(inp.super)performAttack(f,'super');
    else if(inp.special)performAttack(f,'special');
    else if(inp.heavy)performAttack(f,'heavy');
    else if(inp.light)performAttack(f,'light');
   }
  }
- f.x+=f.vx*dt; // No horizontal world boundary: camera follows both fighters.
- f.z=(f.z||0)+(f.vz||0)*dt; // Real third dimension: approach and sidestep.
+ const oldX=f.x,oldZ=f.z||0;
+ f.x+=f.vx*dt;
+ f.z=(f.z||0)+(f.vz||0)*dt;
+ // Collide with repeated crates and barrels. Sliding on free axis allows going around.
+ const collide=(x,z)=>{const chunk=Math.round(x/20);for(let k=chunk-1;k<=chunk+1;k++)for(const side of [-1,1]){
+  for(let j=0;j<3;j++){const cx=side*(5.9+j*1.15)+k*20,cz=5.5+(j%2)*1.2;if(Math.abs(x-cx)<.83&&Math.abs(z-cz)<.83)return true;}
+  if(Math.hypot(x-(side*8.2+k*20),z-3.1)<.83)return true;
+ }return false};
+ if(collide(f.x,f.z)){if(!collide(f.x,oldZ))f.z=oldZ;else if(!collide(oldX,f.z))f.x=oldX;else{f.x=oldX;f.z=oldZ;}}
+ f.shotTime=Math.max(0,(f.shotTime||0)-dt);
  const oldY=f.y;f.vy-=23*dt;f.y+=f.vy*dt;f.grounded=false;
  let landing=0;
  if(mode==='platform'&&f.vy<=0){
@@ -220,6 +232,13 @@ function logic(dt){
  if(match.phase!=='fight')return;
  const a=players[0],b=players[1],ctrl1=copyState(),ctrl2=role==='solo'?botControl(b,a,dt):remoteInput;
  fighterStep(a,b,ctrl1,dt);fighterStep(b,a,ctrl2||{},dt);
+ for(const [shooter,target] of [[a,b],[b,a]]){
+  if(shooter.shotId&&shooter.shotId!==shooter.lastShotId){shooter.lastShotId=shooter.shotId;shooter.projectiles=shooter.projectiles||[];shooter.projectiles.push({x:shooter.x,z:shooter.z,y:shooter.y+1.4,dir:shooter.dir,life:1.35});}
+  for(const p of shooter.projectiles||[]){p.x+=p.dir*13*dt;p.life-=dt;
+   if(p.life>0&&Math.abs(p.x-target.x)<.7&&Math.abs(p.z-target.z)<1.15&&Math.abs(p.y-(target.y+1.4))<1.4){p.life=0;const blocked=target.block&&target.dir===-p.dir;const dmg=blocked?2:role==='solo'&&shooter.id===1?4:8;target.hp=clamp(target.hp-dmg,0,100);target.hitstun=blocked?.08:.17;target.chi=clamp(target.chi+4,0,100);gfx.impact(target.x,target.y+1,false,blocked);}
+  }
+  shooter.projectiles=(shooter.projectiles||[]).filter(p=>p.life>0);
+ }
  handleAttack(a,b);handleAttack(b,a);
  if(mode!=='endless')match.time=Math.max(0,match.time-dt);
  if(a.hp<=0||b.hp<=0||(mode!=='endless'&&match.time<=0)){
