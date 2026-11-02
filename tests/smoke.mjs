@@ -149,8 +149,10 @@ try {
     await steer(guest, 'right');
     await host.waitForFunction(() => window.__arenaSmoke?.()?.remote?.axisX > 0.7, null, { timeout: 10000 });
     await guest.locator('#back-menu').click();
+    await guest.waitForFunction(() => window.__arenaSmoke?.()?.local?.axisX === 0, null, { timeout: 5000 });
     await host.waitForFunction(() => Object.keys(window.__arenaSmoke?.()?.remote || {}).length === 0, null, { timeout: 12000 });
     await host.locator('#back-menu').click();
+    await host.waitForFunction(() => window.__arenaSmoke?.()?.local?.axisX === 0, null, { timeout: 5000 });
     // PeerJS may emit a harmless buffered-send warning while closing RTCDataChannel.
     await host.waitForTimeout(350);
     const teardownErrors = errors.filter(msg => !msg.includes('Error sending binary data through RTCDataChannel.'));
