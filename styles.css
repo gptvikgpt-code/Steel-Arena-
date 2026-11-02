@@ -73,3 +73,7 @@
 .fight .view-camera{display:block}
 .view-camera[aria-pressed="true"]{background:#28635c;border-color:#8cf6d5}
 @media(max-width:650px){.view-camera{top:108px;left:8px;padding:6px 8px;font-size:9px}}
+
+#fps-crosshair{display:none;position:fixed;left:50%;top:49%;transform:translate(-50%,-50%);z-index:9;color:#f3fcff;font:bold 32px/1 monospace;text-shadow:0 1px 5px #000,0 0 9px #39d7ff;pointer-events:none}
+.fight.first-person #fps-crosshair{display:block}
+.fight .view-camera{pointer-events:auto!important;cursor:pointer;z-index:20!important}
