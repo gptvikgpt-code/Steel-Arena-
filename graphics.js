@@ -287,7 +287,7 @@ export function createGraphics(canvas){
    if(!state||!fighters[i])return;
    const f=fighters[i],name=String(state.nick||('БОТ '+i)).slice(0,16),teamKey=state.team??(i===0?'self':'enemy');
    if(f.nameplateText!==name||f.nameplateTeam!==teamKey){
-    if(f.nameplate){f.root.remove(f.nameplate);f.nameplate.material.map.dispose();f.nameplate.material.dispose();}
+    if(f.nameplate){world.remove(f.nameplate);f.nameplate.material.map.dispose();f.nameplate.material.dispose();}
     const canvas=document.createElement('canvas');canvas.width=512;canvas.height=128;
     const ctx=canvas.getContext('2d');const ally=state.team!=null&&fighterStates[0]?.team!=null?state.team===fighterStates[0].team:i===0;
     ctx.fillStyle=ally?'rgba(11,57,82,.85)':'rgba(80,23,27,.85)';
@@ -296,8 +296,13 @@ export function createGraphics(canvas){
     ctx.fillStyle='#ffffff';ctx.font='bold 56px sans-serif';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText(name,256,66,455);
     const texture=new THREE.CanvasTexture(canvas);texture.colorSpace=THREE.SRGBColorSpace;
     f.nameplate=new THREE.Sprite(new THREE.SpriteMaterial({map:texture,transparent:true,depthWrite:false,depthTest:false}));
-    f.nameplate.position.set(0,3.4,0);f.nameplate.scale.set(2.7,.68,1);f.root.add(f.nameplate);f.nameplateText=name;f.nameplateTeam=teamKey;
+    f.nameplate.position.set(state.x,(state.y||0)+3.3,state.z||0);f.nameplate.scale.set(2.7,.68,1);world.add(f.nameplate);f.nameplateText=name;f.nameplateTeam=teamKey;
    }
+  });
+  fighterStates.forEach((state,i)=>{
+   const plate=fighters[i]?.nameplate;if(!plate)return;
+   plate.visible=!!state&&state.hp>0&&!(firstPerson&&i===0);
+   if(state)plate.position.set(state.x,(state.y||0)+3.3,state.z||0);
   });
   fighters.forEach((f,i)=>{f.root.visible=i<fighterStates.length&&fighterStates[i]?.hp>0});
   fighterStates.forEach((s,i)=>{
