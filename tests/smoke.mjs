@@ -25,7 +25,8 @@ const server = createServer(async (req, res) => {
   }
 });
 await new Promise(ok => server.listen(0, '127.0.0.1', ok));
-const url = `http://127.0.0.1:${server.address().port}/`;
+const liveUrl = process.env.ARENA_TEST_URL;
+const url = liveUrl ? new URL(liveUrl).href : `http://127.0.0.1:${server.address().port}/`;
 let android, iphone;
 const errors = [];
 try {
@@ -52,6 +53,17 @@ try {
     await page.route('**/graphics.js*', route => route.fulfill({
       status: 200, contentType: 'text/javascript', body: mockGraphics
     }));
+    if (liveUrl) {
+      // The live site must serve its real game.js; append a read-only test
+      // snapshot only inside the isolated Playwright browser session.
+      await page.route('**/game.js*', async route => {
+        const response = await route.fetch();
+        assert.ok(response.ok(), 'Published game.js must be available');
+        const source = await response.body();
+        const snapshot = '\\nwindow.__arenaSmoke = () => ({role, mode, arena, phase:match?.phase, delay:match?.delay, worldTime, fighters:players.map(p => ({x:p.x,z:p.z,hp:p.hp,dir:p.dir,attack:p.attack?.kind})), local:copyState(), remote:remoteInput});\\n';
+        await route.fulfill({ response, body: Buffer.concat([source, Buffer.from(snapshot)]) });
+      });
+    }
   }
   for (const [name, page] of [['Android/Chromium', host], ['iPhone/WebKit', guest]]) {
     page.on('pageerror', err => errors.push(`${name}: ${err.message}`));
