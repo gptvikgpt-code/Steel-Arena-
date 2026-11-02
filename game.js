@@ -83,7 +83,9 @@ function newMatch(p1=choice,p2='knight',w1=weaponChoice,w2=defaultWeapons[p2]||'
 function nextRound(){
  const s1=players[0].style,s2=players[1].style;
  const w1=players[0].weapon,w2=players[1].weapon;
+ const identities=players.map(p=>({nick:p.nick,team:p.team}));
  players=role==='solo'?[freshFighter(0,s1,0,1,w1),...botRoster()]:[freshFighter(0,s1,-3.5,1,w1),freshFighter(1,s2,3.5,-1,w2)];
+ players.forEach((p,i)=>Object.assign(p,identities[i]||{}));
  match.round++;match.time=MAX_ROUND_TIME;match.phase='intro';match.delay=1.4;
  announce('РАУНД '+match.round,1.1);
 }
@@ -419,7 +421,7 @@ function setHandlers(c,isHost){
      ...(Number.isFinite(ay)?{axisY:clamp(ay,-1,1)}:{})
     };
    }
-   if(msg.t==='rematch'&&match?.phase==='finished'){const [p1,p2]=players;newMatch(p1.style,p2.style,p1.weapon,p2.weapon);send({t:'start',mode,arena,first:p1.style,second:p2.style,firstWeapon:p1.weapon,secondWeapon:p2.weapon,firstNick:p1.nick,secondNick:p2.nick})}
+   if(msg.t==='rematch'&&match?.phase==='finished'){const [p1,p2]=players;const firstNick=p1.nick,secondNick=p2.nick;newMatch(p1.style,p2.style,p1.weapon,p2.weapon);players[0].nick=firstNick;players[1].nick=secondNick;players[0].team='host';players[1].team='guest';send({t:'start',mode,arena,first:p1.style,second:p2.style,firstWeapon:p1.weapon,secondWeapon:p2.weapon,firstNick,secondNick})}
   }else{
    if(msg.t==='start'){
     mode=['duel','platform','endless'].includes(msg.mode)?msg.mode:'endless';
@@ -503,7 +505,7 @@ $('menu-return').addEventListener('click',toMenu);
 $('play-again').addEventListener('click',()=>{
  $('result-screen').classList.add('hidden');
  if(role==='solo')newMatch(choice,'knight');
- else if(role==='host'){const [p0,p1]=players;newMatch(p0.style,p1.style,p0.weapon,p1.weapon);send({t:'start',mode,arena,first:p0.style,second:p1.style,firstWeapon:p0.weapon,secondWeapon:p1.weapon})}
+ else if(role==='host'){const [p0,p1]=players;const firstNick=p0.nick,secondNick=p1.nick;newMatch(p0.style,p1.style,p0.weapon,p1.weapon);players[0].nick=firstNick;players[1].nick=secondNick;players[0].team='host';players[1].team='guest';send({t:'start',mode,arena,first:p0.style,second:p1.style,firstWeapon:p0.weapon,secondWeapon:p1.weapon,firstNick,secondNick})}
  else if(role==='guest')send({t:'rematch'});
 });
 $('copy-invite').addEventListener('click',async()=>{
