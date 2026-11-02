@@ -3,7 +3,7 @@
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,maximum-scale=1,user-scalable=no">
 <meta name="theme-color" content="#10172a"><meta name="description" content="Steel Arena — оригинальный 3D-файтинг. Выбирай бойца, тренируйся с ботом или сражайся с другом онлайн в браузере.">
 <title>Steel Arena — 3D Fighting Online</title>
-<link rel="stylesheet" href="./styles.css?v=20261102y">
+<link rel="stylesheet" href="./styles.css?v=20261102z">
 <script defer src="https://unpkg.com/peerjs@1.5.5/dist/peerjs.min.js"></script>
 </head><body>
 <canvas id="scene" aria-label="Трёхмерная боевая арена"></canvas>
@@ -15,7 +15,10 @@
  <div class="fighter-hud right"><div id="name2" class="fighter-id">СТРАЖ</div><div class="health"><i id="hp2"></i></div><div class="energy"><i id="chi2"></i></div></div>
 </div></div>
 <div id="hint"></div>
-<div id="fps-crosshair" aria-hidden="true">+</div>
+<div id="fps-aim-zone" aria-label="Водите пальцем для прицеливания"></div>
+<div id="fps-crosshair" aria-hidden="true"><span></span><span></span><span></span><span></span><i></i></div>
+<div id="fps-muzzle" aria-hidden="true"></div>
+<div id="fps-help">ПРОВЕДИ ПАЛЬЦЕМ СПРАВА — ПРИЦЕЛ</div>
 <button id="view-camera" class="view-camera" type="button" aria-pressed="false">👁 ВИД ОТ ПЕРВОГО ЛИЦА</button>
 <button id="tilt-camera" class="tilt-camera" type="button" aria-pressed="false">📱 КАМЕРА: ВЫКЛ</button>
 <button class="menu-btn" id="back-menu" aria-label="В главное меню">☰ МЕНЮ</button>
@@ -107,5 +110,5 @@
   <div class="actions"><button class="play-btn" id="play-again">↻ ЕЩЁ РАЗ</button><button class="alt-btn" id="menu-return">В МЕНЮ</button></div>
  </div>
 </div>
-<script type="module" src="./game.js?v=20261102y"></script>
+<script type="module" src="./game.js?v=20261102z"></script>
 </body></html>
