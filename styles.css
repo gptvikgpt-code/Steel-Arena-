@@ -37,3 +37,9 @@
 .joystick-knob{position:absolute;width:42%;height:42%;left:29%;top:29%;border-radius:50%;background:#65b7e6;border:2px solid white;pointer-events:none;transform:translate(0px,0px)}
 .touch-actions{gap:4px}
 @media(max-width:760px){.move-joystick{width:100px;height:100px}.touch-actions .touch-btn.mini{width:38px;height:38px;font-size:9px}}
+
+/* Drag joystick: continuous movement without lifting the thumb */
+#mobile-controls .move-joystick{touch-action:none!important;pointer-events:auto!important;overscroll-behavior:contain;width:clamp(110px,24vh,155px);height:clamp(110px,24vh,155px);border:3px solid #a5efff;background:radial-gradient(circle,#37668a,#0b223a);box-shadow:inset 0 0 22px #8fd8ff55,0 5px 18px #000b}
+#mobile-controls .joystick-knob{width:46%;height:46%;left:27%;top:27%;background:radial-gradient(circle at 35% 25%,#d7fbff,#4d9acb 65%,#1b3d63);border:3px solid #e9ffff;will-change:transform}
+#mobile-controls .touch-left{touch-action:none;flex-shrink:0}
+@media(max-width:760px){#mobile-controls .move-joystick{width:clamp(100px,22vh,140px);height:clamp(100px,22vh,140px)}}
