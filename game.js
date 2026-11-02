@@ -315,7 +315,7 @@ function setHandlers(c,isHost){
   }else{
    if(msg.t==='start'){
     mode=['duel','platform','endless'].includes(msg.mode)?msg.mode:'endless';
-    arena=['temple','grove','city'].includes(msg.arena)?msg.arena:'temple';
+    arena=['temple','grove','city','cavern','citadel'].includes(msg.arena)?msg.arena:'temple';
     role='guest';newMatch(classes[msg.first]?msg.first:'ronin',classes[msg.second]?msg.second:'knight',equipped(msg.firstWeapon).id,equipped(msg.secondWeapon).id);
    }
    if(msg.t==='state'&&Array.isArray(msg.players)&&msg.players.length===2&&msg.match){
