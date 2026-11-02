@@ -95,6 +95,9 @@ try {
       el.dispatchEvent(new PointerEvent('pointerup', { bubbles: true, pointerId: 11 })));
     await Promise.all([steer(host, 'right'), steer(guest, 'left')]);
     await host.waitForTimeout(550);
+    const analog = await host.evaluate(() => window.__arenaSmoke?.());
+    assert.ok(analog?.local?.axisX > 0.7, 'Host touch joystick must send analog movement');
+    assert.ok(analog?.remote?.axisX < -0.7, 'Guest analog joystick axis must reach host via WebRTC');
     await Promise.all([stopSteering(host), stopSteering(guest)]);
     await host.waitForTimeout(250);
     console.log('Before attack:', JSON.stringify(await host.evaluate(() => window.__arenaSmoke?.())), JSON.stringify(await guest.evaluate(() => window.__arenaSmoke?.())), 'errors:', errors);
