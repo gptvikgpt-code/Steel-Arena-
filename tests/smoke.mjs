@@ -71,7 +71,7 @@ try {
     await guest.locator('#join-code').fill(code);
     await guest.locator('#join-room').click();
     await Promise.all([host.locator('body.fight').waitFor({ timeout: 40000 }), guest.locator('body.fight').waitFor({ timeout: 40000 })]);
-    await host.waitForTimeout(2500);
+    await host.waitForFunction(() => window.__arenaSmoke?.()?.phase === 'fight', null, { timeout: 30000 });
     assert.match(await guest.locator('#name1').innerText(), /•/);
     assert.notEqual(await guest.locator('#time').innerText(), '∞');
     assert.ok(await host.locator('#mobile-controls').isVisible());
@@ -94,10 +94,16 @@ try {
     const release = (page, key) => page.locator(`#mobile-controls [data-key="${key}"]`).evaluate(el =>
       el.dispatchEvent(new PointerEvent('pointerup', { bubbles: true, pointerId: 11 })));
     await Promise.all([steer(host, 'right'), steer(guest, 'left')]);
-    await host.waitForTimeout(550);
+    await host.waitForTimeout(200);
     const analog = await host.evaluate(() => window.__arenaSmoke?.());
     assert.ok(analog?.local?.axisX > 0.7, 'Host touch joystick must send analog movement');
     assert.ok(analog?.remote?.axisX < -0.7, 'Guest analog joystick axis must reach host via WebRTC');
+    // Wait for the fighters to reach striking range, rather than relying on
+    // wall-clock milliseconds that vary with browser scheduling and CI load.
+    await host.waitForFunction(() => {
+      const fighters = window.__arenaSmoke?.()?.fighters;
+      return fighters?.length === 2 && fighters[1].x - fighters[0].x < 1.85;
+    }, null, { timeout: 12000 });
     await Promise.all([stopSteering(host), stopSteering(guest)]);
     await host.waitForTimeout(250);
     console.log('Before attack:', JSON.stringify(await host.evaluate(() => window.__arenaSmoke?.())), JSON.stringify(await guest.evaluate(() => window.__arenaSmoke?.())), 'errors:', errors);
