@@ -3,6 +3,8 @@ import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.169.0/build/three.m
 const PALETTES={
  temple:{sky:['#1554a7','#ef7e87','#ffcc79'],accent:0xff9c4b,stone:0x736b75,roof:0xa83b46},
  grove:{sky:['#0a2537','#316677','#b1c797'],accent:0x91faad,stone:0x437b79,roof:0x295a59},
+ cavern:{sky:['#10142d','#4d3171','#8b71a8'],accent:0x9a75ff,stone:0x443c68,roof:0x342752},
+ citadel:{sky:['#273850','#b1a5a0','#d6c8a1'],accent:0xffca82,stone:0x827d82,roof:0x615c73},
  city:{sky:['#160e30','#47316f','#cb6696'],accent:0xf97dde,stone:0x494065,roof:0x3b3976}
 };
 const gradData=new Uint8Array([24,24,28,255,105,105,115,255,210,210,215,255,255,255,255,255]);
@@ -29,7 +31,7 @@ export function createGraphics(canvas){
  const fill=new THREE.DirectionalLight(0x6caeff,1.45);fill.position.set(8,6,-10);scene.add(fill);
  const rim=new THREE.DirectionalLight(0x9edbff,2.3);rim.position.set(3,8,-5);scene.add(rim);
  let world=new THREE.Group();scene.add(world);let fighters=[],particles=[],glows=[],arenaColor=0xffac65,mode='duel',camShake=0,blur=0;
- let terrain=[],tilePrototype=null,backdrop=null,skyPlane=null,illustratedBackdrop=null,cameraCenter=0,baseWidth=19,screenRatio=1,currentViewWidth=19;
+ let terrain=[],tilePrototype=null,backdrop=null,skyPlane=null,illustratedBackdrop=null,shotMeshes=[],cameraCenter=0,baseWidth=19,screenRatio=1,currentViewWidth=19;
  function skyTexture(colors){
   const c=document.createElement('canvas');c.width=512;c.height=256;const ctx=c.getContext('2d');
   const grd=ctx.createLinearGradient(0,0,0,256);colors.forEach((color,i)=>grd.addColorStop(i/(colors.length-1),color));ctx.fillStyle=grd;ctx.fillRect(0,0,512,256);
@@ -82,7 +84,7 @@ export function createGraphics(canvas){
   for(let i=0;i<4;i++){const vine=cyl(tree,mat(0x3b7c39),Math.sin(i*2)*1.1,4.6,Math.cos(i*2)*1.1,.035,.05,2.4,5);vine.rotation.z=.13;}
  }
  function setStage(arena,playMode,styles){
-  scene.remove(world);world=new THREE.Group();scene.add(world);particles=[];glows=[];fighters=[];mode=playMode;cameraCenter=0;currentViewWidth=baseWidth;terrain=[];
+  scene.remove(world);world=new THREE.Group();scene.add(world);particles=[];glows=[];fighters=[];mode=playMode;cameraCenter=0;currentViewWidth=baseWidth;terrain=[];shotMeshes=[];
   backdrop=new THREE.Group();world.add(backdrop);
   const tile=new THREE.Group();tilePrototype=tile;
   const p=PALETTES[arena]||PALETTES.temple;arenaColor=p.accent;scene.fog.density=arena==='grove'?.019:.013;scene.fog.color.set(p.sky[0]);sun.color.setHex(p.accent);fill.color.setHex(arena==='grove'?0xa1ddff:0x76a2ff);
@@ -165,6 +167,10 @@ export function createGraphics(canvas){
     for(let j=0;j<4;j++)jungleTree(tile,side*(5.7+j*1.7),-5.8-(j%2)*4,.8+(j%3)*.2);
     for(let j=0;j<5;j++) bamboo(tile,side*(6.6+j*.5),-5.5-j*.75,.72+j*.13);
     torii(tile,side*8,-12,.8,0x477e70);
+   }else if(arena==='cavern'){
+    for(let j=0;j<7;j++){const xx=side*(5+j*1.5);const crystal=addMesh(tile,new THREE.ConeGeometry(.35+j%3*.18,1.5+j%3,6),new THREE.MeshStandardMaterial({color:0x9474ee,emissive:0x5b3bd5,emissiveIntensity:.8}),xx,.8,-8-j%3);crystal.rotation.z=side*.25;}
+   }else if(arena==='citadel'){
+    for(let j=0;j<5;j++){const xx=side*(5.5+j*1.65);cyl(tile,mat(0xb5a99e),xx,2.2,-9,.38,.52,4.4,12);box(tile,mat(0xc8b8a1),xx,4.5,-9,1.1,.28,1.1);}
    }else if(arena==='city'){
     for(let j=0;j<6;j++){const xx=side*(6.3+j*1.45);const ht=3+(j%3)*1.2;box(tile,mat(sideColors[j%3]),xx,ht*.5,-10,1.2,ht,1.35);
       for(let yy=1;yy<ht;yy+=.75){box(tile,mat(j%2?0x8a70d1:0xfd9dc5),xx,yy,-9.29,.58,.1,.03)}}
@@ -286,10 +292,14 @@ export function createGraphics(canvas){
    const action=s.attack?.kind||null;const attackPhase=s.attack?1-Math.max(0,s.attack.remaining)/Math.max(.01,s.attack.duration):0;
    const turn=Math.sin(now*.0008+i*1.6)*.18;
    const lean=Math.sin(now*.002+i*2)*.065;
-   f.root.position.set(s.x,s.y,s.z??0);f.root.scale.x=s.dir||1;
+   f.root.position.set(s.x,s.y,s.z??0);f.root.scale.x=1;
+   // Smooth yaw follows movement, including reversing direction and sidestepping.
+   const desiredYaw=Math.abs(s.vx||0)+Math.abs(s.vz||0)>.25?Math.atan2(s.vx||0,s.vz||0):s.dir<0?-Math.PI/2:Math.PI/2;
+   const angleDiff=Math.atan2(Math.sin(desiredYaw-(f.yaw??desiredYaw)),Math.cos(desiredYaw-(f.yaw??desiredYaw)));
+   f.yaw=(f.yaw??desiredYaw)+angleDiff*Math.min(1,delta*9);
    // Continuous character turning, idle weight shifts, and attack spins.
    const spin=action==='super'?Math.sin(attackPhase*Math.PI)*Math.PI*1.7:action==='special'?Math.sin(attackPhase*Math.PI)*.9:0;
-   f.root.rotation.y=(s.dir<0?Math.PI:0)+turn+spin+(s.block?.22:0)+(moving?Math.sin(t*1.8)*.1:0);
+   f.root.rotation.y=f.yaw+turn+spin+(s.block?.22:0)+(moving?Math.sin(t*1.8)*.1:0);
    f.root.rotation.z=lean*.28+(s.hitstun>0?-.13*s.dir:0);
    const swing=Math.sin(t*2+i)*.025;
    f.torso.position.y=1.4+(s.grounded?Math.sin(t*2.8+i)*(moving?.085:.055):0);
@@ -311,6 +321,10 @@ export function createGraphics(canvas){
    f.head.scale.y=s.hitstun>0?.93:1;
    f.root.visible=s.hp>0||s.y>-2;
   });
+  // Render live projectile positions from the authoritative match state.
+  const shots=fighterStates.flatMap((fighter,i)=>(fighter?.projectiles||[]).map(p=>({...p,owner:i})));
+  while(shotMeshes.length<shots.length){const orb=addMesh(world,new THREE.SphereGeometry(.17,12,8),new THREE.MeshBasicMaterial({color:0xffd45a}),0,0,0);const halo=addMesh(orb,new THREE.SphereGeometry(.32,12,8),new THREE.MeshBasicMaterial({color:0xffa62d,transparent:true,opacity:.28,depthWrite:false}));orb.castShadow=false;halo.castShadow=false;shotMeshes.push(orb)}
+  shotMeshes.forEach((mesh,i)=>{mesh.visible=i<shots.length;if(i<shots.length){mesh.position.set(shots[i].x,shots[i].y,shots[i].z);mesh.scale.setScalar(1+Math.sin(now*.024+i)*.2);}});
   for(let j=particles.length-1;j>=0;j--){
    const p=particles[j];p.life-=delta;p.mesh.position.addScaledVector(p.velocity,delta);p.velocity.y-=6*delta;
    p.mesh.scale.setScalar(Math.max(.02,p.life/p.max));p.mesh.material.opacity=Math.max(0,p.life/p.max);
