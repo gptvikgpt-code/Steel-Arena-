@@ -330,8 +330,8 @@ function bindTouch(){
   const up=e=>{e.preventDefault();input[key]=false;b.classList.remove('pressed')};
   b.addEventListener('pointerdown',down);b.addEventListener('pointerup',up);b.addEventListener('pointercancel',up);b.addEventListener('lostpointercapture',up);
  });
- const keyMapping={KeyA:'left',ArrowLeft:'left',KeyD:'right',ArrowRight:'right',KeyW:'jump',ArrowUp:'jump',
- KeyJ:'light',KeyK:'heavy',KeyS:'block',ArrowDown:'block',ShiftLeft:'dash',ShiftRight:'dash',KeyL:'special',KeyP:'super',Space:'jump'};
+ const keyMapping={KeyA:'left',ArrowLeft:'left',KeyD:'right',ArrowRight:'right',KeyW:'up',ArrowUp:'up',
+ KeyJ:'light',KeyK:'heavy',KeyS:'down',ArrowDown:'down',KeyB:'block',ShiftLeft:'dash',ShiftRight:'dash',KeyL:'special',KeyP:'super',Space:'jump'};
  window.addEventListener('keydown',e=>{const k=keyMapping[e.code];if(k){if(e.target?.tagName==='INPUT')return;e.preventDefault();input[k]=true}});
  window.addEventListener('keyup',e=>{const k=keyMapping[e.code];if(k){e.preventDefault();input[k]=false}});
  window.addEventListener('blur',()=>controls.forEach(k=>input[k]=false));
