@@ -434,7 +434,15 @@ function setHandlers(c,isHost){
    }
   }
  });
- c.on('close',()=>{setNet('Связь с другим игроком потеряна.');if(role!=='menu'&&match){announce('СОЕДИНЕНИЕ ПОТЕРЯНО',4)}});
+ c.on('close',()=>{
+  // A disconnected guest must not keep moving/attacking on the host.
+  // Ignore delayed close events from an obsolete connection.
+  if(connection!==c)return;
+  connection=null;
+  if(isHost)remoteInput={};
+  setNet('Связь с другим игроком потеряна.');
+  if(role!=='menu'&&match)announce('СОЕДИНЕНИЕ ПОТЕРЯНО',4);
+ });
  c.on('error',e=>setNet('Ошибка связи: '+(e?.message||'неизвестная')));
 }
 function createRoom(){
