@@ -100,7 +100,13 @@ try {
     const release = (page, key) => page.locator(`#mobile-controls [data-key="${key}"]`).evaluate(el =>
       el.dispatchEvent(new PointerEvent('pointerup', { bubbles: true, pointerId: 11 })));
     await Promise.all([steer(host, 'right'), steer(guest, 'left')]);
-    await host.waitForTimeout(200);
+    // WebRTC input packets and requestAnimationFrame are asynchronous. A fixed
+    // 200 ms sleep intermittently fails on loaded CI runners even when the
+    // guest's joystick state arrives correctly a moment later.
+    await host.waitForFunction(() => {
+      const state = window.__arenaSmoke?.();
+      return state?.local?.axisX > 0.7 && state?.remote?.axisX < -0.7;
+    }, null, { timeout: 10000 });
     const analog = await host.evaluate(() => window.__arenaSmoke?.());
     assert.ok(analog?.local?.axisX > 0.7, 'Host touch joystick must send analog movement');
     assert.ok(analog?.remote?.axisX < -0.7, 'Guest analog joystick axis must reach host via WebRTC');
