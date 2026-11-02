@@ -17,7 +17,7 @@ const server = createServer(async (req, res) => {
     if (path !== root && !path.startsWith(root + sep)) throw new Error('bad path');
     let bytes = await readFile(path);
     // Read-only snapshots only in the local test server, never in deployed game code.
-    if (path.endsWith('/game.js')) bytes = Buffer.concat([bytes, Buffer.from('\nwindow.__arenaSmoke = () => ({role, mode, phase:match?.phase, delay:match?.delay, worldTime, fighters:players.map(p => ({x:p.x,z:p.z,hp:p.hp,dir:p.dir,attack:p.attack?.kind})), local:copyState(), remote:remoteInput});\n')]);
+    if (path.endsWith('/game.js')) bytes = Buffer.concat([bytes, Buffer.from('\nwindow.__arenaSmoke = () => ({role, mode, arena, phase:match?.phase, delay:match?.delay, worldTime, fighters:players.map(p => ({x:p.x,z:p.z,hp:p.hp,dir:p.dir,attack:p.attack?.kind})), local:copyState(), remote:remoteInput});\n')]);
     res.writeHead(200, { 'Content-Type': mime[extname(path)] || 'application/octet-stream', 'Cache-Control': 'no-store' });
     res.end(bytes);
   } catch (err) {
@@ -72,6 +72,12 @@ try {
     await guest.locator('#join-room').click();
     await Promise.all([host.locator('body.fight').waitFor({ timeout: 40000 }), guest.locator('body.fight').waitFor({ timeout: 40000 })]);
     await host.waitForFunction(() => window.__arenaSmoke?.()?.phase === 'fight', null, { timeout: 30000 });
+    const hostStage = await host.evaluate(() => window.__arenaSmoke?.());
+    const guestStage = await guest.evaluate(() => window.__arenaSmoke?.());
+    assert.equal(hostStage?.mode, mode, 'Host must use the selected battle mode');
+    assert.equal(guestStage?.mode, mode, 'Guest must receive the selected battle mode');
+    assert.equal(hostStage?.arena, 'garden', 'Host must use the visible garden map');
+    assert.equal(guestStage?.arena, 'garden', 'Guest must use the same map as host');
     assert.match(await guest.locator('#name1').innerText(), /•/);
     assert.notEqual(await guest.locator('#time').innerText(), '∞');
     assert.ok(await host.locator('#mobile-controls').isVisible());
