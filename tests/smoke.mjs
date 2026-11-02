@@ -60,7 +60,7 @@ try {
         const response = await route.fetch();
         assert.ok(response.ok(), 'Published game.js must be available');
         const source = await response.body();
-        const snapshot = '\\nwindow.__arenaSmoke = () => ({role, mode, arena, phase:match?.phase, delay:match?.delay, worldTime, fighters:players.map(p => ({x:p.x,z:p.z,hp:p.hp,dir:p.dir,attack:p.attack?.kind})), local:copyState(), remote:remoteInput});\\n';
+        const snapshot = '\nwindow.__arenaSmoke = () => ({role, mode, arena, phase:match?.phase, delay:match?.delay, worldTime, fighters:players.map(p => ({x:p.x,z:p.z,hp:p.hp,dir:p.dir,attack:p.attack?.kind})), local:copyState(), remote:remoteInput});\n';
         await route.fulfill({ response, body: Buffer.concat([source, Buffer.from(snapshot)]) });
       });
     }
