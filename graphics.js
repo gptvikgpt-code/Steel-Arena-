@@ -20,7 +20,7 @@ export function createGraphics(canvas){
  renderer.shadowMap.enabled=true;renderer.shadowMap.type=THREE.PCFSoftShadowMap;
  renderer.setPixelRatio(Math.min(devicePixelRatio||1,1.75));
  const scene=new THREE.Scene();scene.fog=new THREE.FogExp2(0x1c213f,.013);
- const camera=new THREE.PerspectiveCamera(46,1,.1,220);
+ const camera=new THREE.PerspectiveCamera(48,1,.1,260);
  camera.position.set(0,7.8,25);camera.lookAt(0,2,0);
  scene.add(new THREE.HemisphereLight(0xcbdffb,0x65506a,2.1));
  const sun=new THREE.DirectionalLight(0xffe3bd,3);sun.position.set(-6,14,9);sun.castShadow=true;sun.shadow.mapSize.set(1024,1024);sun.shadow.camera.left=-17;sun.shadow.camera.right=17;sun.shadow.camera.top=15;sun.shadow.camera.bottom=-14;sun.shadow.normalBias=.025;scene.add(sun);
@@ -54,14 +54,43 @@ export function createGraphics(canvas){
   backdrop=new THREE.Group();world.add(backdrop);
   const tile=new THREE.Group();tilePrototype=tile;
   const p=PALETTES[arena]||PALETTES.temple;arenaColor=p.accent;scene.fog.color.set(p.sky[0]);sun.color.setHex(p.accent);fill.color.setHex(arena==='grove'?0xa1ddff:0x76a2ff);
-  const sky=addMesh(backdrop,new THREE.PlaneGeometry(110,58),new THREE.MeshBasicMaterial({map:skyTexture(p.sky),depthWrite:false}),0,13,-42);sky.castShadow=false;sky.receiveShadow=false;skyPlane=sky;
+  const sky=addMesh(backdrop,new THREE.PlaneGeometry(170,90),new THREE.MeshBasicMaterial({map:skyTexture(p.sky),depthWrite:false,side:THREE.DoubleSide}),0,17,-66);sky.castShadow=false;sky.receiveShadow=false;skyPlane=sky;
   for(let i=-5;i<=5;i++){
    const h=4+(Math.sin(i*4.93)+1)*1.5;const x=i*4.4;
    const hill=cyl(tile,mat(arena==='grove'?0x1b5358:0x2b2945),x,h*.27,-18,2.1,3.7,h,5);hill.rotation.y=.34;
   }
-  const floor=box(tile,mat(p.stone),0,-.45,0,20.5,.9,8.8);
-  const groundGrid=new THREE.GridHelper(20,20,0xb3a4bd,0x5a526d);groundGrid.position.y=.018;groundGrid.material.transparent=true;groundGrid.material.opacity=.18;tile.add(groundGrid);
-  box(tile,M.ink,0,-.89,0,21,.18,9.2);
+  const floor=box(tile,mat(p.stone),0,-.45,0,20.5,.9,19);
+  const paving=mat(arena==='city'?0x756781:arena==='grove'?0x617f78:0x988487);
+  for(let row=-4;row<=4;row++)for(let col=-9;col<=9;col++){
+   const slab=box(tile,paving,col*1.08+(row%2)*.38,.027,row*1.9,1.02,.065,1.78);
+   slab.rotation.y=((row+col)%3-1)*.018;
+  }
+  for(let i=0;i<12;i++){
+   const z=-7.7+(i%4)*4.9,x=-8.6+Math.floor(i/4)*8.4;
+   const crack=box(tile,M.ink,x,.07,z,1.1,.018,.035);crack.rotation.y=i*.74;crack.castShadow=false;
+  }
+  // Stone paving provides strong perspective lines; no debug grid.
+  box(tile,M.ink,0,-.89,0,21,.18,19.4);
+  for(const z of [-10.3,10.3]){
+   for(let j=-4;j<=4;j++){
+    const x=j*2.45;
+    const plinth=box(tile,mat(p.stone),x,.55,z,.85,1.1,.85);
+    const column=cyl(tile,mat(arena==='grove'?0x56887a:0x82748a),x,2.1,z,.32,.43,2.4,10);
+    box(tile,M.gold,x,3.34,z,.92,.17,.92);
+    if(j%2===0){
+     const flame=addMesh(tile,new THREE.ConeGeometry(.22,.72,9),new THREE.MeshBasicMaterial({color:0xffb86e}),x,3.82,z);
+     flame.castShadow=false;
+     const light=new THREE.PointLight(p.accent,3.5,7,2);light.position.set(x,3.6,z);tile.add(light);
+    }
+   }
+  }
+  for(let j=0;j<5;j++){
+   const x=-9+j*4.7;
+   const island=new THREE.Group();island.position.set(x,7+(j%2)*2,-27-j*3);tile.add(island);
+   const rock=addMesh(island,new THREE.DodecahedronGeometry(2.5,1),mat(arena==='grove'?0x365c58:0x60506d));rock.scale.set(1.4,.48,1.1);
+   const underside=addMesh(island,new THREE.ConeGeometry(1.9,3.6,7),mat(0x302a40),0,-2.2,0);underside.rotation.z=Math.PI;
+   for(let k=0;k<3;k++){const cloud=ball(island,new THREE.MeshBasicMaterial({color:0xe4bad2,transparent:true,opacity:.22,depthWrite:false}),-2+k*1.8,-2.8,-1.5,.95,12);cloud.castShadow=false;}
+  }
   // Layered foreground and background geometry makes the arena read as a deep 3D space.
   for(let j=0;j<9;j++){
    const x=-9+j*2.3, depth=-10-(j%3)*3.8;
@@ -232,7 +261,7 @@ export function createGraphics(canvas){
   currentViewWidth+=(desiredWidth-currentViewWidth)*Math.min(1,delta*5);
   camera.aspect=1/screenRatio;
   camera.updateProjectionMatrix();
-  const needed=Math.min(25,Math.max(7,Math.ceil(currentViewWidth/20)+5));
+  const needed=Math.min(17,Math.max(5,Math.ceil(currentViewWidth/20)+3));
   while(terrain.length<needed){const chunk=tilePrototype.clone(true);world.add(chunk);terrain.push(chunk)}
   for(let i=0;i<terrain.length;i++){
    const tileIndex=Math.floor(cameraCenter/20)+i-Math.floor(terrain.length/2);
@@ -240,11 +269,16 @@ export function createGraphics(canvas){
   }
   if(backdrop){backdrop.position.x=cameraCenter*.95;if(skyPlane)skyPlane.scale.x=Math.max(1,currentViewWidth/104)}
   camShake=Math.max(0,camShake-delta*8);
-  camera.position.x=cameraCenter+Math.sin(now*.12)*camShake*.18;
-  camera.position.y=7.8+Math.cos(now*.11)*camShake*.14;
-  camera.position.z=Math.max(21, currentViewWidth/(2*Math.tan(THREE.MathUtils.degToRad(camera.fov/2))*camera.aspect)+4);
-  camera.position.x+=Math.sin(now*.00023)*.22;
-  camera.lookAt(cameraCenter,2,0);
+  // Floating cinematic camera: orbit, dolly, vertical drift and true 3D parallax.
+  const t=now*.00023;
+  const orbit=Math.sin(t)*.38;
+  const distance=Math.max(17,currentViewWidth/(2*Math.tan(THREE.MathUtils.degToRad(camera.fov/2))*camera.aspect)+2);
+  const dolly=distance+Math.sin(t*.73)*1.35;
+  camera.position.x=cameraCenter+Math.sin(orbit)*dolly*.67+Math.sin(now*.12)*camShake*.18;
+  camera.position.y=6.1+Math.sin(t*1.27)*1.35+Math.cos(now*.11)*camShake*.14;
+  camera.position.z=Math.cos(orbit)*dolly;
+  camera.lookAt(cameraCenter,1.65,-1.5);
+  camera.rotation.z=Math.sin(t*.8)*.012;
   renderer.render(scene,camera);
  }
  function impact(x,y,isSuper=false,parry=false){
