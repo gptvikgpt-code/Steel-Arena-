@@ -41,7 +41,7 @@ for(const b of document.querySelectorAll('[data-pick]')){
  b.addEventListener('click',()=>select(b.dataset.pick,b.dataset.value));
 }
 function freshFighter(id,style,x,dir,weapon=id===0?weaponChoice:(defaultWeapons[style]||'sword')){
- return {id,style,weapon:equipped(weapon).id,x,y:0,z:id===0?2.3:-2.3,vx:0,vz:0,vy:0,dir,hp:100,chi:0,grounded:true,jumps:0,prevJump:false,block:false,parry:0,
+ return {id,style,weapon:equipped(weapon).id,x,y:0,z:0,vx:0,vz:0,vy:0,dir,hp:100,chi:0,grounded:true,jumps:0,prevJump:false,block:false,parry:0,
  hitstun:0,invuln:0,dashTimer:0,dashCool:0,attack:null,attackCool:0,specialCool:0,superCool:0,combo:0,comboClock:0,prevBlock:false};
 }
 function announce(text,seconds=1.2){const el=$('announce');el.textContent=text;el.classList.add('visible');noticeDeadline=performance.now()+seconds*1000;}
@@ -103,6 +103,7 @@ function impact(f,other,attack,blocked,parried){
  const isSuper=attack.kind==='super';
  const guarded=blocked&&!parried;
  let dmg=parried?0:guarded?Math.max(1,Math.round(attack.dmg*.18)):Math.round(attack.dmg);
+ if(role==='solo'&&f.id===1)dmg=Math.max(1,Math.round(dmg*.6));
  const back=other.x<f.x?-1:1;
  other.hp=clamp(other.hp-dmg,0,100);
  if(parried){
@@ -137,21 +138,26 @@ function handleAttack(attacker,defender){
 }
 function botControl(f,target,delta){
  const dst=target.x-f.x,abs=Math.abs(dst),dz=(target.z||0)-(f.z||0);
- const brave=weaponRange(f)+.1;const r={
+ const brave=weaponRange(f)+.1;
+ // Training opponent: clear openings and slower reactions, without changing online balance.
+ f.botThink=(f.botThink||0)-delta;
+ if(f.botThink>0)return f.botLast||{};
+ f.botThink=.28+Math.random()*.33;
+ const r={
  left:dst<0&&abs>brave*.75,right:dst>0&&abs>brave*.75,
  up:dz<-.65,down:dz>.65,
- jump:mode==='platform'&&abs>3&&Math.random()<delta*.5,block:false,
- dash:abs>5&&Math.random()<delta*.22,light:false,heavy:false,special:false,super:false
+ jump:mode==='platform'&&abs>3&&Math.random()<.08,block:false,
+ dash:abs>6&&Math.random()<.07,light:false,heavy:false,special:false,super:false
  };
  if(abs<brave+.45&&f.attackCool<=0&&f.hitstun<=0){
   const prob=Math.random();
-  r.block=target.attack!==null&&prob<.6;
-  r.light=!r.block&&prob<.56;
-  r.heavy=!r.block&&prob>=.56&&prob<.83;
-  r.special=!r.block&&f.chi>=24&&prob>.85;
-  r.super=!r.block&&f.chi>=65&&prob>.97;
- } else if(f.chi>=24&&abs<5&&Math.random()<delta*.55)r.special=true;
- return r;
+  r.block=target.attack!==null&&prob<.2;
+  r.light=!r.block&&prob<.28;
+  r.heavy=!r.block&&prob>=.28&&prob<.4;
+  r.special=!r.block&&f.chi>=24&&prob>.92;
+  r.super=!r.block&&f.chi>=65&&prob>.99;
+ }
+ f.botLast=r;return r;
 }
 function fighterStep(f,enemy,inp,dt){
  const style=classes[f.style],gear=equipped(f.weapon),runSpeed=style.speed*gear.move;
