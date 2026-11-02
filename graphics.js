@@ -5,7 +5,11 @@ const PALETTES={
  grove:{sky:['#0a2537','#316677','#b1c797'],accent:0x91faad,stone:0x437b79,roof:0x295a59},
  cavern:{sky:['#10142d','#4d3171','#8b71a8'],accent:0x9a75ff,stone:0x443c68,roof:0x342752},
  citadel:{sky:['#273850','#b1a5a0','#d6c8a1'],accent:0xffca82,stone:0x827d82,roof:0x615c73},
- city:{sky:['#160e30','#47316f','#cb6696'],accent:0xf97dde,stone:0x494065,roof:0x3b3976}
+ city:{sky:['#160e30','#47316f','#cb6696'],accent:0xf97dde,stone:0x494065,roof:0x3b3976},
+ desert:{sky:['#344b8d','#d9874f','#ffe1a0'],accent:0xffd17b,stone:0xb88a57,roof:0x9a5e37},
+ glacier:{sky:['#08253f','#3a86ae','#b7f5ff'],accent:0x83edff,stone:0x568da7,roof:0x37657c},
+ volcano:{sky:['#130e1d','#61232c','#e86a2f'],accent:0xff693a,stone:0x4b3840,roof:0x7a3432},
+ space:{sky:['#05091e','#1d2761','#663ea4'],accent:0x80e5ff,stone:0x26375d,roof:0x374a81}
 };
 const gradData=new Uint8Array([24,24,28,255,105,105,115,255,210,210,215,255,255,255,255,255]);
 const gradient=new THREE.DataTexture(gradData,4,1,THREE.RGBAFormat);gradient.magFilter=gradient.minFilter=THREE.NearestFilter;gradient.needsUpdate=true;
@@ -31,7 +35,7 @@ export function createGraphics(canvas){
  const fill=new THREE.DirectionalLight(0x6caeff,1.45);fill.position.set(8,6,-10);scene.add(fill);
  const rim=new THREE.DirectionalLight(0x9edbff,2.3);rim.position.set(3,8,-5);scene.add(rim);
  let world=new THREE.Group();scene.add(world);let fighters=[],particles=[],glows=[],arenaColor=0xffac65,mode='duel',camShake=0,blur=0;
- let terrain=[],tilePrototype=null,backdrop=null,skyPlane=null,illustratedBackdrop=null,shotMeshes=[],cameraCenter=0,baseWidth=25,screenRatio=1,currentViewWidth=25;
+ let terrain=[],tilePrototype=null,backdrop=null,skyPlane=null,illustratedBackdrop=null,shotMeshes=[],cameraCenter=0,baseWidth=36,screenRatio=1,currentViewWidth=36;
  let tiltTarget={x:0,y:0},tiltNow={x:0,y:0};
  function setCameraTilt(x=0,y=0){tiltTarget.x=THREE.MathUtils.clamp(x,-1,1);tiltTarget.y=THREE.MathUtils.clamp(y,-1,1)}
  function skyTexture(colors){
@@ -99,7 +103,7 @@ export function createGraphics(canvas){
    const h=4+(Math.sin(i*4.93)+1)*1.5;const x=i*4.4;
    const hill=cyl(tile,mat(arena==='grove'?0x1b5358:0x2b2945),x,h*.27,-18,2.1,3.7,h,5);hill.rotation.y=.34;
   }
-  const floor=box(tile,mat(p.stone),0,-.45,0,20.5,.9,44);
+  const floor=box(tile,mat(p.stone),0,-.45,0,20.5,.9,70);
   // Retro-action bridge details: crates, steel bands, warning barrels and banners.
   for(const side of [-1,1]){
    for(let j=0;j<3;j++){
@@ -117,7 +121,7 @@ export function createGraphics(canvas){
    box(tile,M.cream,side*7.5,2.65,-6.44,.38,.38,.06);
   }
   const paving=mat(arena==='city'?0x756781:arena==='grove'?0x617f78:0x988487);
-  for(let row=-11;row<=11;row+=2)for(let col=-9;col<=9;col+=2){
+  for(let row=-17;row<=17;row+=2)for(let col=-9;col<=9;col+=2){
    const slab=box(tile,paving,col*1.08+(row%2)*.38,.027,row*1.9,2.05,.065,3.55);
    slab.rotation.y=((row+col)%3-1)*.018;
   }
@@ -126,8 +130,8 @@ export function createGraphics(canvas){
    const crack=box(tile,M.ink,x,.07,z,1.1,.018,.035);crack.rotation.y=i*.74;crack.castShadow=false;
   }
   // Stone paving provides strong perspective lines; no debug grid.
-  box(tile,M.ink,0,-.89,0,21,.18,19.4);
-  for(const z of [-10.3,10.3]){
+  box(tile,M.ink,0,-.89,0,21,.18,70.4);
+  for(const z of [-27,27]){
    for(let j=-4;j<=4;j++){
     const x=j*2.45;
     const plinth=box(tile,mat(p.stone),x,.55,z,.85,1.1,.85);
@@ -182,6 +186,36 @@ export function createGraphics(canvas){
     box(house,mat(0x644459),0,1.55,0,3,3,2);roof(house,mat(p.roof),0,3.35,0,3.8);box(house,M.gold,0,1.7,1.03,1,.85,.13);
     torii(tile,side*5.1,-9,.7,0xb8494c);lantern(tile,side*6.7,2.2,-3.4,0xffba77);
    }
+  }
+  // Distinct environmental landmarks for the four new biomes.
+  if(arena==='desert'){
+   const sand=mat(0xd5a76a),ancient=mat(0x8d664a);
+   for(let side of [-1,1])for(let j=0;j<4;j++){
+    const x=side*(3.2+j*2.05),z=-15-j*3.2;
+    const base=box(tile,sand,x,.48,z,2.1,.95,2.1);
+    const top=addMesh(tile,new THREE.ConeGeometry(1.6,3.8,4),sand,x,2.8,z);top.rotation.y=Math.PI/4;
+    box(tile,ancient,x,.12,z+2,1.6,.25,.55);
+   }
+  }else if(arena==='glacier'){
+   const ice=new THREE.MeshStandardMaterial({color:0x91e7f5,roughness:.23,metalness:.22,transparent:true,opacity:.87});
+   for(let side of [-1,1])for(let j=0;j<9;j++){
+    const x=side*(3.8+j*.92),z=-13-(j%4)*3.8;
+    const spike=addMesh(tile,new THREE.ConeGeometry(.5+(j%3)*.2,2.3+(j%4)*1.1,5),ice,x,1.4+(j%4)*.5,z);spike.rotation.z=side*.18;
+   }
+  }else if(arena==='volcano'){
+   const lava=new THREE.MeshBasicMaterial({color:0xff4b16});
+   for(let side of [-1,1])for(let j=0;j<6;j++){
+    const x=side*(4+j*1.2),z=-15-(j%3)*4;
+    const rock=addMesh(tile,new THREE.DodecahedronGeometry(1.15+(j%3)*.35,0),mat(0x29252d),x,.65,z);rock.scale.y=.8;
+    const fissure=box(tile,lava,x,.07,z+1.5,1.1,.035,.17);fissure.rotation.y=j*.7;
+   }
+  }else if(arena==='space'){
+   const neon=new THREE.MeshBasicMaterial({color:0x31cfff});
+   for(let j=-8;j<=8;j++){
+    box(tile,neon,j*1.15,.035,-12,.055,.06,34);
+    if(j%4===0){const tower=box(tile,mat(0x344e83),j*1.15,2.2,-22,1.1,4.4,1.1);box(tile,neon,j*1.15,4.45,-22,1.3,.16,1.3)}
+   }
+   for(let z=-25;z<=25;z+=5)box(tile,neon,0,.042,z,19,.035,.055);
   }
   if(mode==='platform'){
    const spots=[[-5.2,2.05,3.1],[0,3.05,3.45],[5.1,2.1,3.1]];
@@ -353,7 +387,7 @@ export function createGraphics(canvas){
   const t=now*.00023;
   tiltNow.x+=(tiltTarget.x-tiltNow.x)*Math.min(1,delta*5);
   tiltNow.y+=(tiltTarget.y-tiltNow.y)*Math.min(1,delta*5);
-  const orbit=.18+Math.sin(t*.75)*.065+tiltNow.x*.24;
+  const orbit=.25+Math.sin(t*.75)*.06+tiltNow.x*.24;
   const distance=Math.max(17,currentViewWidth/(2*Math.tan(THREE.MathUtils.degToRad(camera.fov/2))*camera.aspect)+2);
   const dolly=distance+Math.sin(t*.73)*1.35;
   camera.position.x=cameraCenter+Math.sin(orbit)*dolly*.72+Math.sin(now*.12)*camShake*.18;
@@ -377,7 +411,7 @@ export function createGraphics(canvas){
  }
  function resize(){
   const w=innerWidth,h=innerHeight;renderer.setSize(w,h,false);
-  screenRatio=h/w;baseWidth=Math.max(29,16*w/h);currentViewWidth=Math.max(baseWidth,currentViewWidth);
+  screenRatio=h/w;baseWidth=Math.max(36,20*w/h);currentViewWidth=Math.max(baseWidth,currentViewWidth);
   camera.aspect=w/h;camera.updateProjectionMatrix();
  }
  resize();addEventListener('resize',resize);
