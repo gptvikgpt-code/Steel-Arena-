@@ -1,5 +1,5 @@
 
-import {createGraphics} from './graphics.js?v=20261102z';
+import {createGraphics} from './graphics.js?v=20261102garden';
 const $=id=>document.getElementById(id);
 const clamp=(v,min,max)=>Math.max(min,Math.min(max,v));
 const classes={
@@ -219,21 +219,17 @@ function fighterStep(f,enemy,inp,dt){
   }
  }
  const oldX=f.x,oldZ=f.z||0;
- const props=[];const baseChunk=Math.round(f.x/20);
- for(let k=baseChunk-1;k<=baseChunk+1;k++)for(const side of [-1,1]){
-  for(let j=0;j<3;j++)props.push({x:side*(5.9+j*1.15)+k*20,z:5.5+(j%2)*1.2,half:.44,height:.85});
-  props.push({x:side*8.2+k*20,z:3.1,half:.42,height:1.12});
- }
- f.x+=f.vx*dt;
- f.z=(f.z||0)+(f.vz||0)*dt;
- // Align first-person camera and firing with the current movement, not the previous frame.
+ const props=[];
+ const mazeWalls=[[-7,-19,1.1,11],[-3.5,-15,7,.9],[5,-19,1.1,12],[-7,1,1.1,13],[-3,5,6,.9],[7,0,1.1,14],[-5,20,1.1,10],[4,19,1.1,10],[-1,25,8,.9],[-5,-1,5,.9],[4,-8,5,.9]];
+ const obstacles=mazeWalls.map(([x,z,w,d])=>({x,z,halfX:w/2,halfZ:d/2,height:1.5}));
+ for(const [x,z] of [[-7,-9],[7,13],[-7,13]])obstacles.push({x,z,halfX:1.65,halfZ:1.5,height:3});
+ for(let j=0;j<14;j++){const x=(j%2?-1:1)*(3.9+(j%3)*1.05),z=-26+j*4;if(Math.abs(z)<5)continue;obstacles.push({x,z,halfX:.43,halfZ:.43,height:.9});}
+ const oldX=f.x,oldZ=f.z||0;
+ f.x+=f.vx*dt;f.z=(f.z||0)+(f.vz||0)*dt;
  if(Math.hypot(f.vx||0,f.vz||0)>.2&&!(firstPerson&&f.id===0)){const len=Math.hypot(f.vx,f.vz);f.facingX=f.vx/len;f.facingZ=f.vz/len;f.dir=f.facingX<-.15?-1:f.facingX>.15?1:f.dir;}
- // Collide with repeated crates and barrels. Sliding on free axis allows going around.
- const collide=(x,z)=>{const chunk=Math.round(x/20);for(let k=chunk-1;k<=chunk+1;k++)for(const side of [-1,1]){
-  for(let j=0;j<3;j++){const cx=side*(5.9+j*1.15)+k*20,cz=5.5+(j%2)*1.2;if(Math.abs(x-cx)<.83&&Math.abs(z-cz)<.83&&f.y<.85-.12)return true;}
-  if(Math.hypot(x-(side*8.2+k*20),z-3.1)<.83&&f.y<1.12-.12)return true;
- }return false};
+ const collide=(x,z)=>obstacles.some(o=>Math.abs(x-o.x)<o.halfX+.33&&Math.abs(z-o.z)<o.halfZ+.33&&f.y<o.height-.12);
  if(collide(f.x,f.z)){if(!collide(f.x,oldZ))f.z=oldZ;else if(!collide(oldX,f.z))f.x=oldX;else{f.x=oldX;f.z=oldZ;}}
+ f.x=clamp(f.x,-8.5,8.5);f.z=clamp(f.z,-32,32);
  f.shotTime=Math.max(0,(f.shotTime||0)-dt);
  const oldY=f.y;f.vy-=23*dt;f.y+=f.vy*dt;f.grounded=false;
  let landing=0;
