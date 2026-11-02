@@ -24,6 +24,7 @@ const gfx=createGraphics($('scene'));
 const controls=['left','right','up','down','jump','light','heavy','block','dash','special','super','shoot'];
 const input=Object.fromEntries(controls.map(x=>[x,false]));
 let joystickAxis={x:0,y:0};let gamepadActive=false;
+let resetTouchControls=()=>{};
 let role='menu',peer=null,connection=null,remoteInput={},networkTick=0;
 const botLearning={shots:0,attacks:0,blocks:0,frames:0};
 let choice='ronin',weaponChoice='sword',arena='garden',mode='endless',players=[],match=null,lastFx=0,noticeDeadline=0,worldTime=0;
@@ -371,6 +372,11 @@ function liveFrame(ms){
  requestAnimationFrame(liveFrame);
 }
 function shutdown(){
+ // Leaving a room must release an active joystick/pointer, not just the RTC link.
+ resetTouchControls();
+ for(const k of controls)input[k]=false;
+ joystickAxis={x:0,y:0};
+ document.querySelectorAll('#mobile-controls .pressed').forEach(el=>el.classList.remove('pressed'));
  if(connection){try{connection.close()}catch(e){}connection=null}
  if(peer){try{peer.destroy()}catch(e){}peer=null}
  remoteInput={};networkTick=0;
@@ -471,6 +477,7 @@ function bindTouch(){
  const pad=$('move-joystick'),knob=$('joystick-knob');
  let activeStick=null;
  const clearStick=()=>{activeStick=null;joystickAxis={x:0,y:0};pad.classList.remove('engaged');knob.style.transform='translate3d(0px,0px,0)';for(const k of ['left','right','up','down'])input[k]=false;};
+ resetTouchControls=clearStick;
  const updateStick=(x,y)=>{
   const r=pad.getBoundingClientRect(),radius=Math.max(20,r.width*.34);
   let dx=x-r.left-r.width/2,dy=y-r.top-r.height/2;
