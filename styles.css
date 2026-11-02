@@ -32,3 +32,8 @@
 .fight .touch-btn[data-key="block"]{background:linear-gradient(140deg,#596d82,#1b2a42)}
 .fight .announce{color:#fff6b8;-webkit-text-stroke:1.5px #1a2135;text-shadow:4px 5px 0 #9b302a,0 8px 12px #000}
 @media(orientation:portrait) and (max-width:650px){.fight #hud{padding-top:12px}.fight .touch-btn{box-shadow:0 0 0 2px #12172b,0 3px 0 #101528,inset 0 0 12px #ffffff24}}
+
+.move-joystick{width:120px;height:120px;border-radius:50%;border:3px solid #9ce6ff;background:#173953cc;position:relative;touch-action:none;user-select:none;pointer-events:auto;flex-shrink:0;box-shadow:0 3px 18px #0009}
+.joystick-knob{position:absolute;width:42%;height:42%;left:29%;top:29%;border-radius:50%;background:#65b7e6;border:2px solid white;pointer-events:none;transform:translate(0px,0px)}
+.touch-actions{gap:4px}
+@media(max-width:760px){.move-joystick{width:100px;height:100px}.touch-actions .touch-btn.mini{width:38px;height:38px;font-size:9px}}
