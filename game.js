@@ -26,7 +26,7 @@ const input=Object.fromEntries(controls.map(x=>[x,false]));
 let joystickAxis={x:0,y:0};let gamepadActive=false;
 let role='menu',peer=null,connection=null,remoteInput={},networkTick=0;
 const botLearning={shots:0,attacks:0,blocks:0,frames:0};
-let choice='ronin',weaponChoice='sword',arena='temple',mode='endless',players=[],match=null,lastFx=0,noticeDeadline=0,worldTime=0;
+let choice='ronin',weaponChoice='sword',arena='garden',mode='endless',players=[],match=null,lastFx=0,noticeDeadline=0,worldTime=0;
 const MAX_ROUND_TIME=90;
 let botCount=1;
 let firstPerson=false;
@@ -243,7 +243,7 @@ function fighterStep(f,enemy,inp,dt){
  if(mode==='platform'&&f.vy<=0){
   const platforms=[[-5.2,2.05,1.54],[0,3.05,1.72],[5.1,2.1,1.54]];
   const chunk=Math.round(f.x/20);
-  for(let index=chunk-1;index<=chunk+1;index++)for(const [px,py,pw]of platforms){if(Math.abs(f.x-(px+index*20))<pw&&oldY>=py-.1&&f.y<=py)landing=Math.max(landing,py)}
+  for(let index=chunk-1;index<=chunk+1;index++)for(const [px,py,pw]of platforms){if(Math.abs(f.x-(px+index*20))<pw&&Math.abs(f.z)<3.1&&oldY>=py-.1&&f.y<=py)landing=Math.max(landing,py)}
  }
  if(f.y<=landing&&f.vy<=0){f.y=landing;f.vy=0;f.grounded=true;f.jumps=0}
  if(f.attack){
