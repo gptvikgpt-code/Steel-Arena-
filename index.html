@@ -3,7 +3,7 @@
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,maximum-scale=1,user-scalable=no">
 <meta name="theme-color" content="#10172a"><meta name="description" content="Steel Arena — оригинальный 3D-файтинг. Выбирай бойца, тренируйся с ботом или сражайся с другом онлайн в браузере.">
 <title>Steel Arena — 3D Fighting Online</title>
-<link rel="stylesheet" href="./styles.css?v=20261102k">
+<link rel="stylesheet" href="./styles.css?v=20261102l">
 <script defer src="https://unpkg.com/peerjs@1.5.5/dist/peerjs.min.js"></script>
 </head><body>
 <canvas id="scene" aria-label="Трёхмерная боевая арена"></canvas>
@@ -17,7 +17,7 @@
 <div id="hint"></div>
 <button class="menu-btn" id="back-menu" aria-label="В главное меню">☰ МЕНЮ</button>
 <div class="announce" id="announce"></div>
-<div class="bottom-tip">A/D — в стороны · W/S — в глубину · Space — прыжок · B — блок · J — удар · K — сильный · Shift — рывок · L — техника · P — супер</div>
+<div class="bottom-tip">A/D — в стороны · W/S — в глубину · Space — прыжок · B — блок · J — удар · K — сильный · Shift — рывок · L — техника · P — супер · F — стрелять</div>
 <div id="mobile-controls" aria-label="Сенсорное управление">
 <div class="touch-side touch-left">
  <button class="touch-btn mini" data-key="up" aria-label="В глубину">▲</button>
@@ -29,7 +29,7 @@
 <div class="touch-side">
  <div class="touch-stack"><button class="touch-btn mini" data-key="block">БЛОК</button><button class="touch-btn mini" data-key="special">ТЕХН.</button></div>
  <div class="touch-stack"><button class="touch-btn" data-key="light">УДАР</button><button class="touch-btn mini" data-key="super">СУПЕР</button></div>
- <button class="touch-btn" data-key="heavy">СИЛА</button>
+ <button class="touch-btn mini" data-key="shoot">🔥 ОГОНЬ</button><button class="touch-btn" data-key="heavy">СИЛА</button>
 </div></div>
 <div id="menu" class="menu">
 <div class="menu-panel">
@@ -68,6 +68,8 @@
   <button class="option selected" data-pick="arena" data-value="temple"><b>⛩️ ХРАМ</b><small>Закат и фонари</small></button>
   <button class="option" data-pick="arena" data-value="grove"><b>🎋 РОЩА</b><small>Нефрит и бамбук</small></button>
   <button class="option" data-pick="arena" data-value="city"><b>🌃 ГОРОД</b><small>Неоновые крыши</small></button>
+  <button class="option" data-pick="arena" data-value="cavern"><b>💎 ПЕЩЕРА</b><small>Светящиеся кристаллы</small></button>
+  <button class="option" data-pick="arena" data-value="citadel"><b>🏰 ЦИТАДЕЛЬ</b><small>Каменные колонны</small></button>
  </div>
  <div class="section-title">05 / ИГРАТЬ</div>
  <div class="actions">
@@ -92,5 +94,5 @@
   <div class="actions"><button class="play-btn" id="play-again">↻ ЕЩЁ РАЗ</button><button class="alt-btn" id="menu-return">В МЕНЮ</button></div>
  </div>
 </div>
-<script type="module" src="./game.js?v=20261102k"></script>
+<script type="module" src="./game.js?v=20261102l"></script>
 </body></html>
