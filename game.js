@@ -1,5 +1,5 @@
 
-import {createGraphics} from './graphics.js?v=20261102k';
+import {createGraphics} from './graphics.js?v=20261102l';
 const $=id=>document.getElementById(id);
 const clamp=(v,min,max)=>Math.max(min,Math.min(max,v));
 const classes={
@@ -358,7 +358,7 @@ function bindTouch(){
   b.addEventListener('pointerdown',down);b.addEventListener('pointerup',up);b.addEventListener('pointercancel',up);b.addEventListener('lostpointercapture',up);
  });
  const keyMapping={KeyA:'left',ArrowLeft:'left',KeyD:'right',ArrowRight:'right',KeyW:'up',ArrowUp:'up',
- KeyJ:'light',KeyK:'heavy',KeyS:'down',ArrowDown:'down',KeyB:'block',ShiftLeft:'dash',ShiftRight:'dash',KeyL:'special',KeyP:'super',Space:'jump'};
+ KeyJ:'light',KeyK:'heavy',KeyS:'down',ArrowDown:'down',KeyB:'block',ShiftLeft:'dash',ShiftRight:'dash',KeyL:'special',KeyP:'super',KeyF:'shoot',Space:'jump'};
  window.addEventListener('keydown',e=>{const k=keyMapping[e.code];if(k){if(e.target?.tagName==='INPUT')return;e.preventDefault();input[k]=true}});
  window.addEventListener('keyup',e=>{const k=keyMapping[e.code];if(k){e.preventDefault();input[k]=false}});
  window.addEventListener('blur',()=>controls.forEach(k=>input[k]=false));
