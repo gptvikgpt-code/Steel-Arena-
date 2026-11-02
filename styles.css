@@ -43,3 +43,17 @@
 #mobile-controls .joystick-knob{width:46%;height:46%;left:27%;top:27%;background:radial-gradient(circle at 35% 25%,#d7fbff,#4d9acb 65%,#1b3d63);border:3px solid #e9ffff;will-change:transform}
 #mobile-controls .touch-left{touch-action:none;flex-shrink:0}
 @media(max-width:760px){#mobile-controls .move-joystick{width:clamp(100px,22vh,140px);height:clamp(100px,22vh,140px)}}
+
+/* Console controller layout: left analog stick, right ABXY and shoulder buttons */
+#mobile-controls .gamepad-actions{display:flex;flex-direction:column;align-items:flex-end;gap:6px}
+#mobile-controls .shoulder-buttons{display:flex;gap:4px;justify-content:flex-end}
+#mobile-controls .shoulder-buttons .touch-btn{border-radius:10px;width:clamp(43px,8vw,65px);height:clamp(26px,5vh,39px);font-size:9px;background:#26384fd9}
+#mobile-controls .face-buttons{position:relative;width:clamp(142px,29vh,205px);height:clamp(115px,23vh,165px)}
+#mobile-controls .gamepad-face{position:absolute;width:clamp(43px,9vh,62px);height:clamp(43px,9vh,62px);display:flex;flex-direction:column;gap:1px;font-size:17px;border:2px solid #ffffff88}
+#mobile-controls .gamepad-face span{font-size:8px;font-weight:800}
+#mobile-controls .face-y{top:0;left:50%;transform:translateX(-50%);background:#b49a24}
+#mobile-controls .face-x{left:0;top:40%;background:#3673bb}
+#mobile-controls .face-b{right:0;top:40%;background:#b74747}
+#mobile-controls .face-a{bottom:0;left:50%;transform:translateX(-50%);background:#36865c}
+#mobile-controls .gamepad-face.pressed{filter:brightness(1.4)}
+@media(max-width:650px){#mobile-controls .shoulder-buttons .touch-btn{width:38px;font-size:8px}#mobile-controls .face-buttons{width:145px;height:115px}#mobile-controls .gamepad-face{width:43px;height:43px}}
