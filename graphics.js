@@ -230,7 +230,7 @@ export function createGraphics(canvas){
   if(!fighters.length)return;
   fighterStates.forEach((s,i)=>{
    if(!s)return;const f=fighters[i];if(!f)return;const moving=Math.abs(s.vx)>.4;const t=now*.004;
-   f.root.position.set(s.x,s.y, i===0?.36:-.36);f.root.scale.x=s.dir||1;
+   f.root.position.set(s.x,s.y,s.z??(i===0?2.3:-2.3));f.root.scale.x=s.dir||1;
    const swing=Math.sin(t*2+i)*.025;
    f.torso.position.y=1.4+(s.grounded?Math.sin(t*2.8+i)*.035:0);
    f.torso.rotation.z=(s.vx||0)*-.018+(s.hitstun>0?.13:0);
@@ -257,7 +257,7 @@ export function createGraphics(canvas){
   const targetX=a&&b?(a.x+b.x)/2:0;
   const separation=a&&b?Math.abs(a.x-b.x):0;
   cameraCenter+=(targetX-cameraCenter)*Math.min(1,delta*4.5);
-  const desiredWidth=Math.max(baseWidth,separation+9);
+  const desiredWidth=Math.max(baseWidth,separation+8);
   currentViewWidth+=(desiredWidth-currentViewWidth)*Math.min(1,delta*5);
   camera.aspect=1/screenRatio;
   camera.updateProjectionMatrix();
@@ -271,13 +271,13 @@ export function createGraphics(canvas){
   camShake=Math.max(0,camShake-delta*8);
   // Floating cinematic camera: orbit, dolly, vertical drift and true 3D parallax.
   const t=now*.00023;
-  const orbit=Math.sin(t)*.38;
+  const orbit=.48+Math.sin(t*.75)*.12;
   const distance=Math.max(17,currentViewWidth/(2*Math.tan(THREE.MathUtils.degToRad(camera.fov/2))*camera.aspect)+2);
   const dolly=distance+Math.sin(t*.73)*1.35;
-  camera.position.x=cameraCenter+Math.sin(orbit)*dolly*.67+Math.sin(now*.12)*camShake*.18;
-  camera.position.y=6.1+Math.sin(t*1.27)*1.35+Math.cos(now*.11)*camShake*.14;
+  camera.position.x=cameraCenter+Math.sin(orbit)*dolly*.72+Math.sin(now*.12)*camShake*.18;
+  camera.position.y=8.7+Math.sin(t*1.27)*.8+Math.cos(now*.11)*camShake*.14;
   camera.position.z=Math.cos(orbit)*dolly;
-  camera.lookAt(cameraCenter,1.65,-1.5);
+  camera.lookAt(cameraCenter,1.55,(a?.z??0)*.5+(b?.z??0)*.5);
   camera.rotation.z=Math.sin(t*.8)*.012;
   renderer.render(scene,camera);
  }
