@@ -41,7 +41,7 @@ export function createGraphics(canvas){
  let world=new THREE.Group();scene.add(world);let fighters=[],particles=[],glows=[],arenaColor=0xffac65,mode='duel',camShake=0,blur=0;
  let terrain=[],tilePrototype=null,backdrop=null,skyPlane=null,illustratedBackdrop=null,shotMeshes=[],cameraCenter=0,baseWidth=36,screenRatio=1,currentViewWidth=36;
  let tiltTarget={x:0,y:0},tiltNow={x:0,y:0},firstPerson=false;
- function setFirstPerson(enabled){firstPerson=!!enabled;camera.fov=firstPerson?75:48;camera.updateProjectionMatrix();}
+ function setFirstPerson(enabled){firstPerson=!!enabled;camera.fov=firstPerson?82:48;camera.updateProjectionMatrix();}
  function setCameraTilt(x=0,y=0){tiltTarget.x=THREE.MathUtils.clamp(x,-1,1);tiltTarget.y=THREE.MathUtils.clamp(y,-1,1)}
  function skyTexture(colors){
   const c=document.createElement('canvas');c.width=512;c.height=256;const ctx=c.getContext('2d');
@@ -428,9 +428,11 @@ export function createGraphics(canvas){
   if(firstPerson&&a){
    const dx=a.facingX??a.dir??1,dz=a.facingZ??0,mag=Math.hypot(dx,dz)||1;
    const fx=dx/mag,fz=dz/mag;
-   const eye=new THREE.Vector3(a.x,a.y+1.83,a.z||0);
-   const direction=new THREE.Vector3(fx,tiltNow.y*.28,fz).normalize();
+   // Eye-level camera looks forward and slightly down so the arena floor remains visible.
+   const eye=new THREE.Vector3(a.x,a.y+1.72,a.z||0);
+   const direction=new THREE.Vector3(fx,tiltNow.y*.18-.27,fz).normalize();
    camera.position.copy(eye);
+   camera.up.set(0,1,0);
    camera.lookAt(eye.clone().addScaledVector(direction,15));
    if(fighters[0])fighters[0].root.visible=false;
   }
