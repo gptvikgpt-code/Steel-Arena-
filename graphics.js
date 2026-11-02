@@ -6,6 +6,10 @@ const PALETTES={
  cavern:{sky:['#10142d','#4d3171','#8b71a8'],accent:0x9a75ff,stone:0x443c68,roof:0x342752},
  citadel:{sky:['#273850','#b1a5a0','#d6c8a1'],accent:0xffca82,stone:0x827d82,roof:0x615c73},
  city:{sky:['#160e30','#47316f','#cb6696'],accent:0xf97dde,stone:0x494065,roof:0x3b3976},
+ desert:{sky:['#263c70','#e4a66c','#fbe4a5'],accent:0xffc16d,stone:0xc5a16b,roof:0x99734c},
+ glacier:{sky:['#102d59','#4c8eb3','#d9f6ff'],accent:0x8af2ff,stone:0x6aa6bd,roof:0x7bb9d1},
+ volcano:{sky:['#160b1b','#8d2b25','#ff8b3d'],accent:0xff6635,stone:0x41383e,roof:0x6d2928},
+ space:{sky:['#090d30','#282363','#6450ac'],accent:0x88aaff,stone:0x39476e,roof:0x293457},
  desert:{sky:['#344b8d','#d9874f','#ffe1a0'],accent:0xffd17b,stone:0xb88a57,roof:0x9a5e37},
  glacier:{sky:['#08253f','#3a86ae','#b7f5ff'],accent:0x83edff,stone:0x568da7,roof:0x37657c},
  volcano:{sky:['#130e1d','#61232c','#e86a2f'],accent:0xff693a,stone:0x4b3840,roof:0x7a3432},
@@ -95,7 +99,7 @@ export function createGraphics(canvas){
   const tile=new THREE.Group();tilePrototype=tile;
   const p=PALETTES[arena]||PALETTES.temple;arenaColor=p.accent;scene.fog.density=arena==='grove'?.019:.013;scene.fog.color.set(p.sky[0]);sun.color.setHex(p.accent);fill.color.setHex(arena==='grove'?0xa1ddff:0x76a2ff);
   const sky=addMesh(backdrop,new THREE.PlaneGeometry(170,90),new THREE.MeshBasicMaterial({map:skyTexture(p.sky),depthWrite:false,side:THREE.DoubleSide}),0,17,-66);sky.castShadow=false;sky.receiveShadow=false;skyPlane=sky;sky.visible=false;
-  const artwork=arena==='grove'?jungleTexture():new THREE.TextureLoader().load('./assets/steel-arena-backdrop.svg');artwork.colorSpace=THREE.SRGBColorSpace;
+  const artwork=['grove','desert','glacier','volcano','space'].includes(arena)?skyTexture(p.sky):new THREE.TextureLoader().load('./assets/steel-arena-backdrop.svg');artwork.colorSpace=THREE.SRGBColorSpace;
   illustratedBackdrop=addMesh(backdrop,new THREE.PlaneGeometry(125,70),new THREE.MeshBasicMaterial({map:artwork,depthWrite:false,side:THREE.DoubleSide}),0,11,-37);
   illustratedBackdrop.castShadow=false;illustratedBackdrop.receiveShadow=false;
   for(let i=-5;i<=5;i++){
@@ -166,6 +170,28 @@ export function createGraphics(canvas){
   }
   for(let x=-10;x<=10;x+=1){box(tile,mat(arena==='city'?0x7c668e:0xb0a2a0),x,-.009,2.9,.05,.025,5.7)}
   for(let x=-9;x<=9;x+=3){box(tile,M.gold,x,-.015,3.7,.3,.025,.33)}
+  // Four distinct biome maps. Geometry repeats with terrain chunks.
+  if(arena==='desert'){
+   for(let j=0;j<16;j++){const x=-9+(j%8)*2.5,z=-24+Math.floor(j/8)*47;
+    const dune=addMesh(tile,new THREE.ConeGeometry(1.5+(j%3)*.5,1.2,7),mat(j%2?0xe8bd7b:0xd8a66a),x,.4,z);dune.scale.set(1.5,.5,1.1);
+    if(j%4===0){cyl(tile,mat(0x8b674f),x,1.3,z,.5,.65,2.6,8);box(tile,M.gold,x,2.7,z,1.7,.22,1.7);}
+   }
+  }else if(arena==='glacier'){
+   for(let j=0;j<18;j++){const x=-9+(j%9)*2.2,z=j<9?-23:23;
+    const ice=addMesh(tile,new THREE.ConeGeometry(.6+(j%4)*.2,2+(j%3),5),new THREE.MeshStandardMaterial({color:j%2?0x8be7fa:0xb9f5ff,transparent:true,opacity:.83,roughness:.18,metalness:.12}),x,1.2,z);ice.rotation.z=(j%3-1)*.13;
+   }
+  }else if(arena==='volcano'){
+   for(let j=0;j<18;j++){const x=-9+(j%9)*2.2,z=j<9?-23:23;
+    const rock=addMesh(tile,new THREE.DodecahedronGeometry(.8+(j%3)*.4,0),mat(0x27252c),x,.3,z);rock.scale.y=.55;
+    const lava=box(tile,new THREE.MeshBasicMaterial({color:0xff5422}),x,-.005,z+1.1,1.4,.025,.16);lava.rotation.y=j*.7;
+   }
+  }else if(arena==='space'){
+   for(let j=0;j<18;j++){const x=-9+(j%9)*2.2,z=j<9?-23:23;
+    cyl(tile,mat(0x8398ba),x,.7,z,.7,.9,1.4,8);
+    const glow=addMesh(tile,new THREE.TorusGeometry(.53,.075,6,16),new THREE.MeshBasicMaterial({color:0x57dfff}),x,1.5,z);glow.rotation.x=Math.PI/2;
+   }
+   for(let z=-28;z<=28;z+=4)box(tile,new THREE.MeshBasicMaterial({color:0x4e9ae3}),0,.025,z,19,.02,.055);
+  }
   // No walls: the floor repeats endlessly as the camera follows the fighters.
   const sideColors=[0x5c3c59,0x444568,0x376c67];
   for(let side of [-1,1]){
