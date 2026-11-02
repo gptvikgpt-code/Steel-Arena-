@@ -1,5 +1,5 @@
 
-import {createGraphics} from './graphics.js?v=20261102nick';
+import {createGraphics} from './graphics.js?v=20261102teams';
 const $=id=>document.getElementById(id);
 const clamp=(v,min,max)=>Math.max(min,Math.min(max,v));
 const classes={
@@ -405,7 +405,7 @@ function setHandlers(c,isHost){
     const guestNick=cleanNick(msg.nick||'ГОСТЬ');
     const guestWeapon=equipped(msg.weapon).id;
     newMatch(choice,guest,weaponChoice,guestWeapon);
-    players[1].nick=guestNick;
+    players[1].nick=guestNick;players[0].team='host';players[1].team='guest';
     send({t:'start',mode,arena,first:choice,second:guest,firstWeapon:weaponChoice,secondWeapon:guestWeapon,firstNick:myNick(),secondNick:guestNick});
     setNet('Друг подключён. Бой начался!');
    }
@@ -424,7 +424,7 @@ function setHandlers(c,isHost){
    if(msg.t==='start'){
     mode=['duel','platform','endless'].includes(msg.mode)?msg.mode:'endless';
     arena='garden';
-    role='guest';newMatch(classes[msg.first]?msg.first:'ronin',classes[msg.second]?msg.second:'knight',equipped(msg.firstWeapon).id,equipped(msg.secondWeapon).id);players[0].nick=cleanNick(msg.firstNick||'ХОЗЯИН');players[1].nick=cleanNick(msg.secondNick||myNick());
+    role='guest';newMatch(classes[msg.first]?msg.first:'ronin',classes[msg.second]?msg.second:'knight',equipped(msg.firstWeapon).id,equipped(msg.secondWeapon).id);players[0].nick=cleanNick(msg.firstNick||'ХОЗЯИН');players[1].nick=cleanNick(msg.secondNick||myNick());players[0].team='host';players[1].team='guest';
    }
    if(msg.t==='state'&&Array.isArray(msg.players)&&msg.players.length===2&&msg.match){
     const oldId=lastFx;players=msg.players;match=msg.match;
