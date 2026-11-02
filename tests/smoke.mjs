@@ -17,7 +17,7 @@ const server = createServer(async (req, res) => {
     if (path !== root && !path.startsWith(root + sep)) throw new Error('bad path');
     let bytes = await readFile(path);
     // Read-only snapshots only in the local test server, never in deployed game code.
-    if (path.endsWith('/game.js')) bytes = Buffer.concat([bytes, Buffer.from('\nwindow.__arenaSmoke = () => ({role, mode, phase:match?.phase, fighters:players.map(p => ({x:p.x,z:p.z,hp:p.hp,dir:p.dir,attack:p.attack?.kind})), local:copyState(), remote:remoteInput});\n')]);
+    if (path.endsWith('/game.js')) bytes = Buffer.concat([bytes, Buffer.from('\nwindow.__arenaSmoke = () => ({role, mode, phase:match?.phase, delay:match?.delay, worldTime, fighters:players.map(p => ({x:p.x,z:p.z,hp:p.hp,dir:p.dir,attack:p.attack?.kind})), local:copyState(), remote:remoteInput});\n')]);
     res.writeHead(200, { 'Content-Type': mime[extname(path)] || 'application/octet-stream', 'Cache-Control': 'no-store' });
     res.end(bytes);
   } catch (err) {
@@ -78,7 +78,7 @@ try {
     await host.waitForTimeout(550);
     await Promise.all([stopSteering(host), stopSteering(guest)]);
     await host.waitForTimeout(250);
-    console.log('Before attack:', JSON.stringify(await host.evaluate(() => window.__arenaSmoke?.())), JSON.stringify(await guest.evaluate(() => window.__arenaSmoke?.())));
+    console.log('Before attack:', JSON.stringify(await host.evaluate(() => window.__arenaSmoke?.())), JSON.stringify(await guest.evaluate(() => window.__arenaSmoke?.())), 'errors:', errors);
     await press(host, 'light');
     try {
       await host.waitForFunction(() => parseFloat(document.querySelector('#hp2')?.style.width || '100') < 100, null, { timeout: 5000 });
