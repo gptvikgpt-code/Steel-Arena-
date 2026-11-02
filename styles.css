@@ -68,3 +68,8 @@
 .bot-count-control strong{font-size:24px;color:#ffcb72}
 .bot-count-control input{width:100%;margin:12px 0 7px;accent-color:#ffba60;cursor:pointer;touch-action:pan-x}
 .bot-count-control small{display:block;color:#bbcee4;font-size:11px}
+
+.view-camera{position:fixed;z-index:8;top:clamp(120px,20vh,158px);left:12px;display:none;padding:9px 12px;border:1px solid #a6eaff99;border-radius:12px;color:white;background:#173454e8;font-weight:800;font-size:11px;box-shadow:0 4px 12px #0009;touch-action:manipulation}
+.fight .view-camera{display:block}
+.view-camera[aria-pressed="true"]{background:#28635c;border-color:#8cf6d5}
+@media(max-width:650px){.view-camera{top:108px;left:8px;padding:6px 8px;font-size:9px}}
