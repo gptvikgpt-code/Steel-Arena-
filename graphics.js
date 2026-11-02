@@ -396,7 +396,8 @@ export function createGraphics(canvas){
    f.aura.material.opacity=.18+(s.chi||0)/350;
    f.aura.scale.setScalar(1+(s.chi||0)/230);
    f.head.scale.y=s.hitstun>0?.93:1;
-   f.root.visible=s.hp>0||s.y>-2;
+   // Never show a defeated fighter again: the poop trophy replaces its model.
+   f.root.visible=s.hp>0 && !(firstPerson&&i===0);
   });
   // Render live projectile positions from the authoritative match state.
   const shots=fighterStates.flatMap((fighter,i)=>(fighter?.projectiles||[]).map(p=>({...p,owner:i})));
