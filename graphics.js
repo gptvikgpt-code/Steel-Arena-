@@ -99,7 +99,7 @@ export function createGraphics(canvas){
    const h=4+(Math.sin(i*4.93)+1)*1.5;const x=i*4.4;
    const hill=cyl(tile,mat(arena==='grove'?0x1b5358:0x2b2945),x,h*.27,-18,2.1,3.7,h,5);hill.rotation.y=.34;
   }
-  const floor=box(tile,mat(p.stone),0,-.45,0,20.5,.9,31);
+  const floor=box(tile,mat(p.stone),0,-.45,0,20.5,.9,44);
   // Retro-action bridge details: crates, steel bands, warning barrels and banners.
   for(const side of [-1,1]){
    for(let j=0;j<3;j++){
@@ -117,7 +117,7 @@ export function createGraphics(canvas){
    box(tile,M.cream,side*7.5,2.65,-6.44,.38,.38,.06);
   }
   const paving=mat(arena==='city'?0x756781:arena==='grove'?0x617f78:0x988487);
-  for(let row=-7;row<=7;row+=2)for(let col=-9;col<=9;col+=2){
+  for(let row=-11;row<=11;row+=2)for(let col=-9;col<=9;col+=2){
    const slab=box(tile,paving,col*1.08+(row%2)*.38,.027,row*1.9,2.05,.065,3.55);
    slab.rotation.y=((row+col)%3-1)*.018;
   }
@@ -353,11 +353,11 @@ export function createGraphics(canvas){
   const t=now*.00023;
   tiltNow.x+=(tiltTarget.x-tiltNow.x)*Math.min(1,delta*5);
   tiltNow.y+=(tiltTarget.y-tiltNow.y)*Math.min(1,delta*5);
-  const orbit=.40+Math.sin(t*.75)*.10+tiltNow.x*.27;
+  const orbit=.18+Math.sin(t*.75)*.065+tiltNow.x*.24;
   const distance=Math.max(17,currentViewWidth/(2*Math.tan(THREE.MathUtils.degToRad(camera.fov/2))*camera.aspect)+2);
   const dolly=distance+Math.sin(t*.73)*1.35;
   camera.position.x=cameraCenter+Math.sin(orbit)*dolly*.72+Math.sin(now*.12)*camShake*.18;
-  camera.position.y=10.4+tiltNow.y*3.1+Math.sin(t*1.27)*.45+Math.cos(now*.11)*camShake*.14;
+  camera.position.y=16.2+tiltNow.y*3.1+Math.sin(t*1.27)*.45+Math.cos(now*.11)*camShake*.14;
   camera.position.z=Math.cos(orbit)*dolly;
   camera.lookAt(cameraCenter+tiltNow.x*1.3,1.55,(a?.z??0)*.5+(b?.z??0)*.5+tiltNow.y*.9);
   camera.rotation.z=Math.sin(t*.8)*.012;
@@ -377,7 +377,7 @@ export function createGraphics(canvas){
  }
  function resize(){
   const w=innerWidth,h=innerHeight;renderer.setSize(w,h,false);
-  screenRatio=h/w;baseWidth=Math.max(25,14.5*w/h);currentViewWidth=Math.max(baseWidth,currentViewWidth);
+  screenRatio=h/w;baseWidth=Math.max(29,16*w/h);currentViewWidth=Math.max(baseWidth,currentViewWidth);
   camera.aspect=w/h;camera.updateProjectionMatrix();
  }
  resize();addEventListener('resize',resize);
