@@ -19,8 +19,8 @@ export function createGraphics(canvas){
  renderer.shadowMap.enabled=true;renderer.shadowMap.type=THREE.PCFSoftShadowMap;
  renderer.setPixelRatio(Math.min(devicePixelRatio||1,1.75));
  const scene=new THREE.Scene();scene.fog=new THREE.Fog(0x1c213f,30,65);
- const camera=new THREE.OrthographicCamera(-10,10,6,-6,.1,140);
- camera.position.set(0,5.4,21);camera.lookAt(0,2,0);
+ const camera=new THREE.PerspectiveCamera(46,1,.1,220);
+ camera.position.set(0,7.8,25);camera.lookAt(0,2,0);
  scene.add(new THREE.HemisphereLight(0xcbdffb,0x65506a,2.1));
  const sun=new THREE.DirectionalLight(0xffe3bd,3);sun.position.set(-6,14,9);sun.castShadow=true;sun.shadow.mapSize.set(1024,1024);sun.shadow.camera.left=-17;sun.shadow.camera.right=17;sun.shadow.camera.top=15;sun.shadow.camera.bottom=-14;sun.shadow.normalBias=.025;scene.add(sun);
  const fill=new THREE.DirectionalLight(0x6caeff,1.45);fill.position.set(8,6,-10);scene.add(fill);
@@ -50,7 +50,7 @@ export function createGraphics(canvas){
  function setStage(arena,playMode,styles){
   scene.remove(world);world=new THREE.Group();scene.add(world);particles=[];glows=[];fighters=[];mode=playMode;cameraCenter=0;currentViewWidth=baseWidth;terrain=[];
   backdrop=new THREE.Group();world.add(backdrop);
-  const tile=new THREE.Group();world.add(tile);tilePrototype=tile;
+  const tile=new THREE.Group();tilePrototype=tile;
   const p=PALETTES[arena]||PALETTES.temple;arenaColor=p.accent;scene.fog.color.set(p.sky[0]);sun.color.setHex(p.accent);fill.color.setHex(arena==='grove'?0xa1ddff:0x76a2ff);
   const sky=addMesh(backdrop,new THREE.PlaneGeometry(110,58),new THREE.MeshBasicMaterial({map:skyTexture(p.sky),depthWrite:false}),0,13,-42);sky.castShadow=false;sky.receiveShadow=false;skyPlane=sky;
   for(let i=-5;i<=5;i++){
@@ -58,6 +58,7 @@ export function createGraphics(canvas){
    const hill=cyl(tile,mat(arena==='grove'?0x1b5358:0x2b2945),x,h*.27,-18,2.1,3.7,h,5);hill.rotation.y=.34;
   }
   const floor=box(tile,mat(p.stone),0,-.45,0,20.5,.9,8.8);
+  const groundGrid=new THREE.GridHelper(20,20,0xb3a4bd,0x5a526d);groundGrid.position.y=.018;groundGrid.material.transparent=true;groundGrid.material.opacity=.18;tile.add(groundGrid);
   box(tile,M.ink,0,-.89,0,21,.18,9.2);
   for(let x=-10;x<=10;x+=1){box(tile,mat(arena==='city'?0x7c668e:0xb0a2a0),x,-.009,2.9,.05,.025,5.7)}
   for(let x=-9;x<=9;x+=3){box(tile,M.gold,x,-.015,3.7,.3,.025,.33)}
@@ -198,11 +199,11 @@ export function createGraphics(canvas){
   const targetX=a&&b?(a.x+b.x)/2:0;
   const separation=a&&b?Math.abs(a.x-b.x):0;
   cameraCenter+=(targetX-cameraCenter)*Math.min(1,delta*4.5);
-  const desiredWidth=Math.max(baseWidth,separation+8);
+  const desiredWidth=Math.max(baseWidth,separation+9);
   currentViewWidth+=(desiredWidth-currentViewWidth)*Math.min(1,delta*5);
-  camera.left=-currentViewWidth/2;camera.right=currentViewWidth/2;
-  camera.top=currentViewWidth*screenRatio/2;camera.bottom=-camera.top;camera.updateProjectionMatrix();
-  const needed=Math.min(17,Math.max(5,Math.ceil(currentViewWidth/20)+3));
+  camera.aspect=1/screenRatio;
+  camera.updateProjectionMatrix();
+  const needed=Math.min(25,Math.max(7,Math.ceil(currentViewWidth/20)+5));
   while(terrain.length<needed){const chunk=tilePrototype.clone(true);world.add(chunk);terrain.push(chunk)}
   for(let i=0;i<terrain.length;i++){
    const tileIndex=Math.floor(cameraCenter/20)+i-Math.floor(terrain.length/2);
@@ -211,7 +212,8 @@ export function createGraphics(canvas){
   if(backdrop){backdrop.position.x=cameraCenter*.95;if(skyPlane)skyPlane.scale.x=Math.max(1,currentViewWidth/104)}
   camShake=Math.max(0,camShake-delta*8);
   camera.position.x=cameraCenter+Math.sin(now*.12)*camShake*.18;
-  camera.position.y=5.4+Math.cos(now*.11)*camShake*.14;
+  camera.position.y=7.8+Math.cos(now*.11)*camShake*.14;
+  camera.position.z=Math.max(21, currentViewWidth/(2*Math.tan(THREE.MathUtils.degToRad(camera.fov/2))*camera.aspect)+4);
   camera.lookAt(cameraCenter,2,0);
   renderer.render(scene,camera);
  }
@@ -230,7 +232,7 @@ export function createGraphics(canvas){
  function resize(){
   const w=innerWidth,h=innerHeight;renderer.setSize(w,h,false);
   screenRatio=h/w;baseWidth=Math.max(19,10.6*w/h);currentViewWidth=Math.max(baseWidth,currentViewWidth);
-  camera.left=-currentViewWidth/2;camera.right=currentViewWidth/2;camera.top=currentViewWidth*screenRatio/2;camera.bottom=-camera.top;camera.updateProjectionMatrix();
+  camera.aspect=w/h;camera.updateProjectionMatrix();
  }
  resize();addEventListener('resize',resize);
  return {setStage,sync,impact,resize,renderer};
