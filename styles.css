@@ -77,3 +77,20 @@
 #fps-crosshair{display:none;position:fixed;left:50%;top:49%;transform:translate(-50%,-50%);z-index:9;color:#f3fcff;font:bold 32px/1 monospace;text-shadow:0 1px 5px #000,0 0 9px #39d7ff;pointer-events:none}
 .fight.first-person #fps-crosshair{display:block}
 .fight .view-camera{pointer-events:auto!important;cursor:pointer;z-index:20!important}
+
+/* FPS controls: transparent right-side drag zone leaves movement stick and buttons free. */
+#fps-aim-zone{display:none;position:fixed;inset:18% 21% 21% 38%;z-index:5;touch-action:none;user-select:none;cursor:crosshair}
+.fight.first-person #fps-aim-zone{display:block}
+#fps-crosshair{font-size:0!important;width:38px;height:38px;filter:drop-shadow(0 1px 2px #000)}
+#fps-crosshair span{position:absolute;background:#d8faff;border-radius:2px;box-shadow:0 0 3px #000}
+#fps-crosshair span:nth-child(1){width:2px;height:10px;left:18px;top:0}
+#fps-crosshair span:nth-child(2){width:2px;height:10px;left:18px;bottom:0}
+#fps-crosshair span:nth-child(3){height:2px;width:10px;left:0;top:18px}
+#fps-crosshair span:nth-child(4){height:2px;width:10px;right:0;top:18px}
+#fps-crosshair i{position:absolute;width:4px;height:4px;left:17px;top:17px;border-radius:50%;background:#f8ffff}
+#fps-crosshair.hit span,#fps-crosshair.hit i{background:#ff5e55;box-shadow:0 0 8px #ff3025}
+#fps-muzzle{display:none;position:fixed;right:22%;bottom:17%;z-index:9;width:100px;height:100px;pointer-events:none;background:radial-gradient(circle,#fff 0%,#ffe48c 15%,#ffad32a0 35%,transparent 70%);mix-blend-mode:screen}
+.fight.first-person #fps-muzzle.firing{display:block;animation:fps-flash .11s ease-out forwards}
+@keyframes fps-flash{from{opacity:1;transform:scale(.65)}to{opacity:0;transform:scale(1.8)}}
+#fps-help{display:none;position:fixed;z-index:7;right:22%;top:23%;color:#f0f7ffbd;font:700 10px sans-serif;pointer-events:none;text-shadow:0 1px 3px #000}
+.fight.first-person #fps-help{display:block}
