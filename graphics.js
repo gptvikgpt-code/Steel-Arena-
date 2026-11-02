@@ -1,11 +1,11 @@
 
 import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.169.0/build/three.module.js';
 const PALETTES={
- temple:{sky:['#1a1532','#54344c','#d58b73'],accent:0xffa75d,stone:0x60566f,roof:0x853b52},
+ temple:{sky:['#1554a7','#ef7e87','#ffcc79'],accent:0xff9c4b,stone:0x736b75,roof:0xa83b46},
  grove:{sky:['#0a2537','#316677','#b1c797'],accent:0x91faad,stone:0x437b79,roof:0x295a59},
  city:{sky:['#160e30','#47316f','#cb6696'],accent:0xf97dde,stone:0x494065,roof:0x3b3976}
 };
-const gradData=new Uint8Array([35,35,35,255,112,112,112,255,190,190,190,255,255,255,255,255]);
+const gradData=new Uint8Array([24,24,28,255,105,105,115,255,210,210,215,255,255,255,255,255]);
 const gradient=new THREE.DataTexture(gradData,4,1,THREE.RGBAFormat);gradient.magFilter=gradient.minFilter=THREE.NearestFilter;gradient.needsUpdate=true;
 const mat=(c)=>new THREE.MeshToonMaterial({color:c,gradientMap:gradient});
 const M={ink:mat(0x192134),cream:mat(0xffe5b9),gold:mat(0xe7b66e),iron:mat(0x9baeca),white:mat(0xfff6e2),skin:mat(0xf5c29d),dark:mat(0x2c354b)};
@@ -18,7 +18,9 @@ export function createGraphics(canvas){
  renderer.outputColorSpace=THREE.SRGBColorSpace;
  renderer.toneMapping=THREE.ACESFilmicToneMapping;renderer.toneMappingExposure=1.38;
  renderer.shadowMap.enabled=true;renderer.shadowMap.type=THREE.PCFSoftShadowMap;
- renderer.setPixelRatio(Math.min(devicePixelRatio||1,1.75));
+ renderer.setPixelRatio(Math.min(devicePixelRatio||1,1.3));
+ // Crisp retro-action look without flattening the actual 3D scene.
+ renderer.toneMappingExposure=1.62;
  const scene=new THREE.Scene();scene.fog=new THREE.FogExp2(0x1c213f,.013);
  const camera=new THREE.PerspectiveCamera(48,1,.1,260);
  camera.position.set(0,7.8,25);camera.lookAt(0,2,0);
@@ -29,12 +31,12 @@ export function createGraphics(canvas){
  let world=new THREE.Group();scene.add(world);let fighters=[],particles=[],glows=[],arenaColor=0xffac65,mode='duel',camShake=0,blur=0;
  let terrain=[],tilePrototype=null,backdrop=null,skyPlane=null,cameraCenter=0,baseWidth=19,screenRatio=1,currentViewWidth=19;
  function skyTexture(colors){
-  const c=document.createElement('canvas');c.width=1024;c.height=512;const ctx=c.getContext('2d');
-  const grd=ctx.createLinearGradient(0,0,0,512);colors.forEach((color,i)=>grd.addColorStop(i/(colors.length-1),color));ctx.fillStyle=grd;ctx.fillRect(0,0,1024,512);
-  ctx.fillStyle='#ffedc0';ctx.globalAlpha=.84;ctx.beginPath();ctx.arc(737,133,55,0,Math.PI*2);ctx.fill();ctx.globalAlpha=.13;ctx.beginPath();ctx.arc(737,133,85,0,Math.PI*2);ctx.fill();ctx.globalAlpha=1;
-  for(let l=0;l<4;l++){ctx.beginPath();const y=360+l*46;ctx.moveTo(0,512);ctx.lineTo(0,y);for(let x=0;x<=1024;x+=38){let peak=Math.sin(x*.015+l*3)*21+Math.sin(x*.037+l*4)*12;ctx.lineTo(x,y-peak-(x%114===0?46:0))}ctx.lineTo(1024,512);ctx.closePath();ctx.fillStyle=['#17274088','#203047aa','#22273bc9','#151e33ea'][l];ctx.fill()}
-  for(let i=0;i<60;i++){let x=(i*319.7)%1024,y=(i*71.8)%290;ctx.globalAlpha=.2+(i%5)/15;ctx.fillStyle='#fff6d1';ctx.fillRect(x,y,i%7===0?3:1,1)}ctx.globalAlpha=1;
-  const t=new THREE.CanvasTexture(c);t.colorSpace=THREE.SRGBColorSpace;return t;
+  const c=document.createElement('canvas');c.width=512;c.height=256;const ctx=c.getContext('2d');
+  const grd=ctx.createLinearGradient(0,0,0,256);colors.forEach((color,i)=>grd.addColorStop(i/(colors.length-1),color));ctx.fillStyle=grd;ctx.fillRect(0,0,512,256);
+  ctx.fillStyle='#ffedc0';ctx.globalAlpha=.84;ctx.beginPath();ctx.arc(365,122,27,0,Math.PI*2);ctx.fill();ctx.globalAlpha=.13;ctx.beginPath();ctx.arc(365,122,45,0,Math.PI*2);ctx.fill();ctx.globalAlpha=1;
+  for(let l=0;l<4;l++){ctx.beginPath();const y=174+l*19;ctx.moveTo(0,256);ctx.lineTo(0,y);for(let x=0;x<=512;x+=19){let peak=Math.sin(x*.03+l*3)*12+Math.sin(x*.07+l*4)*7;ctx.lineTo(x,y-peak-(x%57===0?22:0))}ctx.lineTo(512,256);ctx.closePath();ctx.fillStyle=['#17274088','#203047aa','#22273bc9','#151e33ea'][l];ctx.fill()}
+  for(let i=0;i<60;i++){let x=(i*159.7)%512,y=(i*35.8)%145;ctx.globalAlpha=.2+(i%5)/15;ctx.fillStyle='#fff6d1';ctx.fillRect(x,y,i%7===0?3:1,1)}ctx.globalAlpha=1;
+  const t=new THREE.CanvasTexture(c);t.colorSpace=THREE.SRGBColorSpace;t.magFilter=THREE.NearestFilter;return t;
  }
  function roof(g,ma,x,y,z,w=2.7){const p=box(g,ma,x,y,z,w,.2,1.55);p.rotation.z=0;const a=box(g,ma,x-w*.46,y+.16,z, w*.18,.18,1.65);a.rotation.z=-.38;const b=box(g,ma,x+w*.46,y+.16,z,w*.18,.18,1.65);b.rotation.z=.38}
  function lantern(g,x,y,z,color){
@@ -60,6 +62,22 @@ export function createGraphics(canvas){
    const hill=cyl(tile,mat(arena==='grove'?0x1b5358:0x2b2945),x,h*.27,-18,2.1,3.7,h,5);hill.rotation.y=.34;
   }
   const floor=box(tile,mat(p.stone),0,-.45,0,20.5,.9,19);
+  // Retro-action bridge details: crates, steel bands, warning barrels and banners.
+  for(const side of [-1,1]){
+   for(let j=0;j<3;j++){
+    const xx=side*(5.9+j*1.15),zz=5.5+(j%2)*1.2;
+    box(tile,mat(0x805135),xx,.43,zz,.87,.85,.85);
+    box(tile,M.ink,xx,.42,zz+.445,.84,.09,.045);
+    box(tile,M.gold,xx,.42,zz-.445,.84,.08,.045);
+   }
+   const bx=side*8.2;
+   cyl(tile,mat(0xc92f30),bx,.58,3.1,.4,.4,1.12,10);
+   box(tile,M.ink,bx,.86,3.51,.65,.16,.05);
+   box(tile,M.gold,bx,.48,3.52,.5,.11,.06);
+   const flag=box(tile,mat(0x9f2638),side*7.5,2.6,-6.5,1.15,1.75,.08);
+   flag.rotation.z=side*.09;
+   box(tile,M.cream,side*7.5,2.65,-6.44,.38,.38,.06);
+  }
   const paving=mat(arena==='city'?0x756781:arena==='grove'?0x617f78:0x988487);
   for(let row=-4;row<=4;row+=2)for(let col=-9;col<=9;col+=2){
    const slab=box(tile,paving,col*1.08+(row%2)*.38,.027,row*1.9,2.05,.065,3.55);
@@ -271,7 +289,7 @@ export function createGraphics(canvas){
   camShake=Math.max(0,camShake-delta*8);
   // Floating cinematic camera: orbit, dolly, vertical drift and true 3D parallax.
   const t=now*.00023;
-  const orbit=.48+Math.sin(t*.75)*.12;
+  const orbit=.55+Math.sin(t*.75)*.14;
   const distance=Math.max(17,currentViewWidth/(2*Math.tan(THREE.MathUtils.degToRad(camera.fov/2))*camera.aspect)+2);
   const dolly=distance+Math.sin(t*.73)*1.35;
   camera.position.x=cameraCenter+Math.sin(orbit)*dolly*.72+Math.sin(now*.12)*camShake*.18;
