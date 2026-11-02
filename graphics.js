@@ -61,8 +61,8 @@ export function createGraphics(canvas){
   }
   const floor=box(tile,mat(p.stone),0,-.45,0,20.5,.9,19);
   const paving=mat(arena==='city'?0x756781:arena==='grove'?0x617f78:0x988487);
-  for(let row=-4;row<=4;row++)for(let col=-9;col<=9;col++){
-   const slab=box(tile,paving,col*1.08+(row%2)*.38,.027,row*1.9,1.02,.065,1.78);
+  for(let row=-4;row<=4;row+=2)for(let col=-9;col<=9;col+=2){
+   const slab=box(tile,paving,col*1.08+(row%2)*.38,.027,row*1.9,2.05,.065,3.55);
    slab.rotation.y=((row+col)%3-1)*.018;
   }
   for(let i=0;i<12;i++){
@@ -77,15 +77,15 @@ export function createGraphics(canvas){
     const plinth=box(tile,mat(p.stone),x,.55,z,.85,1.1,.85);
     const column=cyl(tile,mat(arena==='grove'?0x56887a:0x82748a),x,2.1,z,.32,.43,2.4,10);
     box(tile,M.gold,x,3.34,z,.92,.17,.92);
-    if(j%2===0){
+    if(j===0){
      const flame=addMesh(tile,new THREE.ConeGeometry(.22,.72,9),new THREE.MeshBasicMaterial({color:0xffb86e}),x,3.82,z);
      flame.castShadow=false;
      const light=new THREE.PointLight(p.accent,3.5,7,2);light.position.set(x,3.6,z);tile.add(light);
     }
    }
   }
-  for(let j=0;j<5;j++){
-   const x=-9+j*4.7;
+  for(let j=0;j<3;j++){
+   const x=-9+j*8.2;
    const island=new THREE.Group();island.position.set(x,7+(j%2)*2,-27-j*3);tile.add(island);
    const rock=addMesh(island,new THREE.DodecahedronGeometry(2.5,1),mat(arena==='grove'?0x365c58:0x60506d));rock.scale.set(1.4,.48,1.1);
    const underside=addMesh(island,new THREE.ConeGeometry(1.9,3.6,7),mat(0x302a40),0,-2.2,0);underside.rotation.z=Math.PI;
@@ -261,7 +261,7 @@ export function createGraphics(canvas){
   currentViewWidth+=(desiredWidth-currentViewWidth)*Math.min(1,delta*5);
   camera.aspect=1/screenRatio;
   camera.updateProjectionMatrix();
-  const needed=Math.min(17,Math.max(5,Math.ceil(currentViewWidth/20)+3));
+  const needed=Math.min(9,Math.max(3,Math.ceil(currentViewWidth/20)+2));
   while(terrain.length<needed){const chunk=tilePrototype.clone(true);world.add(chunk);terrain.push(chunk)}
   for(let i=0;i<terrain.length;i++){
    const tileIndex=Math.floor(cameraCenter/20)+i-Math.floor(terrain.length/2);
