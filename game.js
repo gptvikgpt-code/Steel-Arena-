@@ -1,5 +1,5 @@
 
-import {createGraphics} from './graphics.js?v=20261102m';
+import {createGraphics} from './graphics.js?v=20261102n';
 const $=id=>document.getElementById(id);
 const clamp=(v,min,max)=>Math.max(min,Math.min(max,v));
 const classes={
@@ -363,17 +363,28 @@ function joinRoom(){
  peer.on('error',e=>setNet('Ошибка соединения: '+(e.type||e.message)));
 }
 function bindTouch(){
- const pad=$('move-joystick'),knob=$('joystick-knob');let stickPointer=null;
- const moveStick=e=>{if(stickPointer!==e.pointerId)return;const rect=pad.getBoundingClientRect(),radius=rect.width*.34;
-  let dx=e.clientX-(rect.left+rect.width/2),dy=e.clientY-(rect.top+rect.height/2);const length=Math.hypot(dx,dy)||1;const scale=Math.min(1,radius/length);dx*=scale;dy*=scale;
-  knob.style.transform=`translate(${dx}px,${dy}px)`;
-  input.left=dx< -radius*.24;input.right=dx>radius*.24;input.up=dy< -radius*.24;input.down=dy>radius*.24;
+ const pad=$('move-joystick'),knob=$('joystick-knob');
+ let activeStick=null;
+ const clearStick=()=>{activeStick=null;knob.style.transform='translate3d(0px,0px,0)';for(const k of ['left','right','up','down'])input[k]=false;};
+ const updateStick=(x,y)=>{
+  const r=pad.getBoundingClientRect(),radius=Math.max(20,r.width*.34);
+  let dx=x-r.left-r.width/2,dy=y-r.top-r.height/2;
+  const magnitude=Math.hypot(dx,dy);if(magnitude>radius){dx*=radius/magnitude;dy*=radius/magnitude;}
+  knob.style.transform='translate3d('+dx+'px,'+dy+'px,0)';
+  const dead=radius*.18;
+  input.left=dx < -dead;input.right=dx > dead;
+  input.up=dy < -dead;input.down=dy > dead;
  };
- const releaseStick=e=>{if(stickPointer!==null&&e&&e.pointerId!==stickPointer)return;stickPointer=null;knob.style.transform='translate(0px,0px)';for(const key of ['left','right','up','down'])input[key]=false;};
- pad.addEventListener('pointerdown',e=>{e.preventDefault();if(stickPointer!==null)return;stickPointer=e.pointerId;pad.setPointerCapture(e.pointerId);moveStick(e)});
- pad.addEventListener('pointermove',e=>{e.preventDefault();moveStick(e)});
- pad.addEventListener('pointerup',releaseStick);pad.addEventListener('pointercancel',releaseStick);pad.addEventListener('lostpointercapture',releaseStick);
- window.addEventListener('blur',()=>releaseStick());
+ pad.addEventListener('pointerdown',e=>{
+  if(activeStick!==null)return;e.preventDefault();activeStick=e.pointerId;
+  try{pad.setPointerCapture(e.pointerId)}catch(_){}
+  updateStick(e.clientX,e.clientY);
+ },{passive:false});
+ // Listen on the window as well: direction changes keep working outside the circle.
+ window.addEventListener('pointermove',e=>{if(activeStick!==e.pointerId)return;e.preventDefault();updateStick(e.clientX,e.clientY);},{passive:false});
+ window.addEventListener('pointerup',e=>{if(activeStick===e.pointerId)clearStick()});
+ window.addEventListener('pointercancel',e=>{if(activeStick===e.pointerId)clearStick()});
+ window.addEventListener('blur',clearStick);
  document.querySelectorAll('[data-key]').forEach(b=>{
   const key=b.dataset.key;
   const down=e=>{e.preventDefault();input[key]=true;b.classList.add('pressed');try{b.setPointerCapture(e.pointerId)}catch(e){}};
