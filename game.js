@@ -58,8 +58,13 @@ function select(which,value){
 for(const b of document.querySelectorAll('[data-pick]')){
  b.addEventListener('click',()=>select(b.dataset.pick,b.dataset.value));
 }
+const nickInput=$('player-nick');
+const cleanNick=value=>String(value||'').trim().replace(/[<>\\x00-\\x1f]/g,'').slice(0,16)||'ИГРОК';
+try{nickInput.value=localStorage.getItem('steel-arena-nick')||'ИГРОК'}catch(_){nickInput.value='ИГРОК'}
+nickInput.addEventListener('change',()=>{nickInput.value=cleanNick(nickInput.value);try{localStorage.setItem('steel-arena-nick',nickInput.value)}catch(_){}});
+const myNick=()=>cleanNick(nickInput.value);
 function freshFighter(id,style,x,dir,weapon=id===0?weaponChoice:(defaultWeapons[style]||'sword')){
- return {id,style,weapon:equipped(weapon).id,x,y:0,z:0,vx:0,vz:0,vy:0,dir,hp:100,chi:0,grounded:true,jumps:0,prevJump:false,block:false,parry:0,
+ return {id,nick:id===0?myNick():'БОТ '+id,style,weapon:equipped(weapon).id,x,y:0,z:0,vx:0,vz:0,vy:0,dir,hp:100,chi:0,grounded:true,jumps:0,prevJump:false,block:false,parry:0,
  hitstun:0,invuln:0,dashTimer:0,dashCool:0,attack:null,attackCool:0,specialCool:0,superCool:0,combo:0,comboClock:0,prevBlock:false,shotCool:0,shotId:0,shotTime:0};
 }
 function announce(text,seconds=1.2){const el=$('announce');el.textContent=text;el.classList.add('visible');noticeDeadline=performance.now()+seconds*1000;}
@@ -390,16 +395,18 @@ function usePeer(){
 function setHandlers(c,isHost){
  connection=c;
  c.on('open',()=>{
-  if(!isHost){setNet('Связь установлена, ждём начала боя…');send({t:'hello',style:choice,weapon:weaponChoice})}
+  if(!isHost){setNet('Связь установлена, ждём начала боя…');send({t:'hello',style:choice,weapon:weaponChoice,nick:myNick()})}
  });
  c.on('data',msg=>{
   if(!msg||typeof msg!=='object')return;
   if(isHost){
    if(msg.t==='hello'){
     const guest=classes[msg.style]?msg.style:'ninja';
+    const guestNick=cleanNick(msg.nick||'ГОСТЬ');
     const guestWeapon=equipped(msg.weapon).id;
     newMatch(choice,guest,weaponChoice,guestWeapon);
-    send({t:'start',mode,arena,first:choice,second:guest,firstWeapon:weaponChoice,secondWeapon:guestWeapon});
+    players[1].nick=guestNick;
+    send({t:'start',mode,arena,first:choice,second:guest,firstWeapon:weaponChoice,secondWeapon:guestWeapon,firstNick:myNick(),secondNick:guestNick});
     setNet('Друг подключён. Бой начался!');
    }
    if(msg.t==='input'&&msg.input){
@@ -412,12 +419,12 @@ function setHandlers(c,isHost){
      ...(Number.isFinite(ay)?{axisY:clamp(ay,-1,1)}:{})
     };
    }
-   if(msg.t==='rematch'&&match?.phase==='finished'){const [p1,p2]=players;newMatch(p1.style,p2.style,p1.weapon,p2.weapon);send({t:'start',mode,arena,first:p1.style,second:p2.style,firstWeapon:p1.weapon,secondWeapon:p2.weapon})}
+   if(msg.t==='rematch'&&match?.phase==='finished'){const [p1,p2]=players;newMatch(p1.style,p2.style,p1.weapon,p2.weapon);send({t:'start',mode,arena,first:p1.style,second:p2.style,firstWeapon:p1.weapon,secondWeapon:p2.weapon,firstNick:p1.nick,secondNick:p2.nick})}
   }else{
    if(msg.t==='start'){
     mode=['duel','platform','endless'].includes(msg.mode)?msg.mode:'endless';
-    arena=['temple','grove','city','cavern','citadel'].includes(msg.arena)?msg.arena:'temple';
-    role='guest';newMatch(classes[msg.first]?msg.first:'ronin',classes[msg.second]?msg.second:'knight',equipped(msg.firstWeapon).id,equipped(msg.secondWeapon).id);
+    arena='garden';
+    role='guest';newMatch(classes[msg.first]?msg.first:'ronin',classes[msg.second]?msg.second:'knight',equipped(msg.firstWeapon).id,equipped(msg.secondWeapon).id);players[0].nick=cleanNick(msg.firstNick||'ХОЗЯИН');players[1].nick=cleanNick(msg.secondNick||myNick());
    }
    if(msg.t==='state'&&Array.isArray(msg.players)&&msg.players.length===2&&msg.match){
     const oldId=lastFx;players=msg.players;match=msg.match;
