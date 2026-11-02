@@ -33,7 +33,26 @@ try {
   iphone = await webkit.launch({ headless: true });
   const a = await android.newContext({ viewport: { width: 915, height: 412 }, isMobile: true, hasTouch: true });
   const i = await iphone.newContext({ viewport: { width: 844, height: 390 }, isMobile: true, hasTouch: true });
+  // Real renderer boot is checked separately on both browser engines.
+  // The multiplayer simulation then uses a no-op graphics adapter so headless
+  // software WebGL cannot stall requestAnimationFrame and distort game time.
+  for (const context of [a, i]) {
+    const renderPage = await context.newPage();
+    await renderPage.goto(url, { waitUntil: 'domcontentloaded' });
+    await renderPage.waitForFunction(() => document.querySelector('#scene')?.width > 400, null, { timeout: 45000 });
+    await renderPage.close();
+  }
+  const mockGraphics = `export function createGraphics(canvas) {
+    canvas.width = innerWidth; canvas.height = innerHeight;
+    return {setStage(){},sync(){},impact(){},resize(){},setCameraTilt(){},
+      setFirstPerson(){},setAim(){},renderer:{domElement:canvas}};
+  }`;
   const host = await a.newPage(), guest = await i.newPage();
+  for (const page of [host, guest]) {
+    await page.route('**/graphics.js*', route => route.fulfill({
+      status: 200, contentType: 'text/javascript', body: mockGraphics
+    }));
+  }
   for (const [name, page] of [['Android/Chromium', host], ['iPhone/WebKit', guest]]) {
     page.on('pageerror', err => errors.push(`${name}: ${err.message}`));
     page.on('console', msg => { if (msg.type() === 'error' && /uncaught|peerjs|failed to fetch dynamically imported|module script/i.test(msg.text())) errors.push(`${name}: ${msg.text()}`); });
