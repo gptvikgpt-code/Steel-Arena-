@@ -72,7 +72,7 @@ export function createGraphics(canvas){
       for(let yy=1;yy<ht;yy+=.75){box(tile,mat(j%2?0x8a70d1:0xfd9dc5),xx,yy,-9.29,.58,.1,.03)}}
     lantern(tile,side*6.8,2.5,-4,0xfa79ec);
    }else{
-    const house=new THREE.Group();house.position.set(side*8,0,-8);world.add(house);
+    const house=new THREE.Group();house.position.set(side*8,0,-8);tile.add(house);
     box(house,mat(0x644459),0,1.55,0,3,3,2);roof(house,mat(p.roof),0,3.35,0,3.8);box(house,M.gold,0,1.7,1.03,1,.85,.13);
     torii(tile,side*5.1,-9,.7,0xb8494c);lantern(tile,side*6.7,2.2,-3.4,0xffba77);
    }
@@ -122,17 +122,46 @@ export function createGraphics(canvas){
   else if(style.id==='mage'){cyl(head,secondary,0,.43,0,.56,.42,.15,9);const hat=addMesh(head,new THREE.ConeGeometry(.47,.78,8),primary,0,.83,0);hat.rotation.z=.14}
   else if(style.id==='brute'){for(const s of [-1,1]){const horn=addMesh(head,new THREE.ConeGeometry(.13,.43,7),M.gold,s*.28,.44,0);horn.rotation.z=-s*.35}}
   else {box(head,secondary,0,.34,0,.78,.22,.55);const plume=addMesh(head,new THREE.ConeGeometry(.14,.6,7),primary,0,.83,0);plume.rotation.z=.33}
+
+  // Weapon is chosen independently of the fighter; each silhouette is visibly different.
   const weapon=new THREE.Group();weapon.position.set(.02,-.83,.11);shoulders[1].add(weapon);
-  if(style.id==='brute'){for(let a of [-.13,.13])ball(weapon,M.gold,a,-.08,.15,.2);box(weapon,metal,.2,-.05,0,.4,.24,.18)}
-  else if(style.id==='mage'){
-   cyl(weapon,M.ink,.4,-.18,0,.055,.055,1.55,7);const gem=addMesh(weapon,new THREE.OctahedronGeometry(.27),secondary,.85,.08,0);gem.material.emissive=new THREE.Color(style.trim);gem.material.emissiveIntensity=.22;
-  }else if(style.id==='lancer'){
-   cyl(weapon,M.gold,.8,-.1,0,.07,.07,2.35,8);const point=addMesh(weapon,new THREE.ConeGeometry(.17,.76,6),metal,2.04,-.1,0);point.rotation.z=-Math.PI/2;
-  }else{
-   box(weapon,M.gold,.25,-.1,0,.55,.12,.12);
-   box(weapon,M.ink,.58,-.1,0,.09,.44,.23);
-   const blade=box(weapon,metal,1.2,-.1,0,1.25,style.id==='knight'?.23:.13,.08);blade.rotation.z=style.id==='ninja'?.16:0;
-   const point=addMesh(weapon,new THREE.ConeGeometry(style.id==='knight'?.12:.08,.27,4),metal,1.92,-.1,0);point.rotation.z=-Math.PI/2;
+  const held=style.weapon||({ronin:'sword',knight:'hammer',ninja:'daggers',mage:'staff',brute:'axe',lancer:'spear'}[style.id]||'sword');
+  const grip=mat(0x604938);
+  if(held==='sword'){
+   box(weapon,grip,.28,-.1,0,.56,.12,.14);
+   box(weapon,M.gold,.59,-.1,0,.13,.38,.24);
+   box(weapon,metal,1.21,-.1,0,1.17,.19,.1);
+   const tip=addMesh(weapon,new THREE.ConeGeometry(.12,.31,4),metal,1.93,-.1,0);tip.rotation.z=-Math.PI/2;
+  }else if(held==='axe'){
+   box(weapon,grip,.82,-.1,0,1.7,.12,.15);
+   box(weapon,M.gold,.22,-.1,0,.25,.19,.2);
+   box(weapon,metal,1.58,-.11,0,.25,.92,.25);
+   const edge=box(weapon,metal,1.82,.03,0,.35,.74,.13);edge.rotation.z=-.14;
+   box(weapon,M.ink,1.53,-.1,.145,.24,.23,.045);
+  }else if(held==='spear'){
+   box(weapon,grip,1.1,-.1,0,2.15,.105,.13);
+   for(const x of [.32,1.53])box(weapon,M.gold,x,-.1,0,.11,.15,.17);
+   const tip=addMesh(weapon,new THREE.ConeGeometry(.18,.8,7),metal,2.52,-.1,0);tip.rotation.z=-Math.PI/2;
+  }else if(held==='staff'){
+   box(weapon,grip,1.03,-.1,0,2.02,.14,.15);
+   for(const x of [.25,.93,1.62])box(weapon,M.gold,x,-.1,0,.12,.19,.19);
+   const orb=addMesh(weapon,new THREE.OctahedronGeometry(.26),secondary,2.17,-.1,0);orb.material.emissive=new THREE.Color(style.trim);orb.material.emissiveIntensity=.45;
+   box(weapon,M.ink,1.85,-.1,0,.19,.23,.23);
+  }else if(held==='hammer'){
+   box(weapon,grip,.72,-.1,0,1.38,.14,.18);
+   box(weapon,M.gold,1.35,-.1,0,.13,.32,.23);
+   box(weapon,metal,1.52,-.1,0,.59,.7,.52);
+   box(weapon,M.ink,1.52,.31,0,.63,.09,.57);
+   box(weapon,M.ink,1.52,-.49,0,.63,.09,.57);
+  }else if(held==='daggers'){
+   box(weapon,grip,.16,-.1,0,.3,.14,.16);
+   box(weapon,M.gold,.33,-.1,0,.1,.28,.18);
+   box(weapon,metal,.73,-.1,0,.74,.13,.09);
+   const tip=addMesh(weapon,new THREE.ConeGeometry(.08,.22,5),metal,1.18,-.1,0);tip.rotation.z=-Math.PI/2;
+   const offHand=new THREE.Group();offHand.position.set(-.02,-.83,.14);shoulders[0].add(offHand);
+   box(offHand,grip,-.14,-.1,0,.29,.14,.15);
+   box(offHand,M.gold,-.29,-.1,0,.1,.25,.17);
+   box(offHand,metal,-.66,-.1,0,.67,.12,.09);
   }
   const aura=addMesh(g,new THREE.RingGeometry(.51,.59,36),new THREE.MeshBasicMaterial({color:number===0?0xf7ae58:0x61dfff,transparent:true,opacity:.4,side:THREE.DoubleSide}),0,.022,0);aura.rotation.x=-Math.PI/2;aura.castShadow=false;
   const shadow=addMesh(g,new THREE.CircleGeometry(.73,26),new THREE.MeshBasicMaterial({color:0x050810,transparent:true,opacity:.45,depthWrite:false}),0,.025,0);shadow.rotation.x=-Math.PI/2;shadow.castShadow=false;
