@@ -1,5 +1,5 @@
 
-import {createGraphics} from './graphics.js?v=20261102l';
+import {createGraphics} from './graphics.js?v=20261102m';
 const $=id=>document.getElementById(id);
 const clamp=(v,min,max)=>Math.max(min,Math.min(max,v));
 const classes={
@@ -24,6 +24,7 @@ const gfx=createGraphics($('scene'));
 const controls=['left','right','up','down','jump','light','heavy','block','dash','special','super','shoot'];
 const input=Object.fromEntries(controls.map(x=>[x,false]));
 let role='menu',peer=null,connection=null,remoteInput={},networkTick=0;
+const botLearning={shots:0,attacks:0,blocks:0,frames:0};
 let choice='ronin',weaponChoice='sword',arena='temple',mode='endless',players=[],match=null,lastFx=0,noticeDeadline=0,worldTime=0;
 const MAX_ROUND_TIME=90;
 const copyState=()=>Object.fromEntries(controls.map(k=>[k,!!input[k]]));
@@ -144,6 +145,7 @@ function botControl(f,target,delta){
  f.botThink=(f.botThink||0)-delta;
  if(f.botThink>0)return f.botLast||{};
  f.botThink=.28+Math.random()*.33;
+ const shotRatio=botLearning.shots/Math.max(1,botLearning.frames),attackRatio=botLearning.attacks/Math.max(1,botLearning.frames),blockRatio=botLearning.blocks/Math.max(1,botLearning.frames);
  const r={
  left:dst<0&&abs>brave*.75,right:dst>0&&abs>brave*.75,
  up:dz<-.65,down:dz>.65,
@@ -152,7 +154,7 @@ function botControl(f,target,delta){
  };
  if(abs<brave+.45&&f.attackCool<=0&&f.hitstun<=0){
   const prob=Math.random();
-  r.block=target.attack!==null&&prob<.2;
+  r.block=target.attack!==null&&prob<Math.min(.58,.2+attackRatio*5);
   r.light=!r.block&&prob<.28;
   r.heavy=!r.block&&prob>=.28&&prob<.4;
   r.special=!r.block&&f.chi>=24&&prob>.92;
@@ -161,6 +163,8 @@ function botControl(f,target,delta){
  // Sidestep props if the direct approach is obstructed.
  const nextX=f.x+Math.sign(dst)*.8;
  for(const side of [-1,1])for(let j=0;j<3;j++){const cx=side*(5.9+j*1.15)+Math.round(nextX/20)*20,cz=5.5+(j%2)*1.2;if(Math.abs(nextX-cx)<1.3&&Math.abs((f.z||0)-cz)<1.3){r.up=(f.z||0)>=cz;r.down=!r.up;}}
+ if(shotRatio>.04&&abs>3&&Math.random()<.32){r.up=Math.random()<.5;r.down=!r.up;}
+ if(blockRatio>.22&&abs<brave+.8&&Math.random()<.35)r.heavy=true;
  f.botLast=r;return r;
 }
 function fighterStep(f,enemy,inp,dt){
@@ -197,17 +201,23 @@ function fighterStep(f,enemy,inp,dt){
   }
  }
  const oldX=f.x,oldZ=f.z||0;
+ const props=[];const baseChunk=Math.round(f.x/20);
+ for(let k=baseChunk-1;k<=baseChunk+1;k++)for(const side of [-1,1]){
+  for(let j=0;j<3;j++)props.push({x:side*(5.9+j*1.15)+k*20,z:5.5+(j%2)*1.2,half:.44,height:.85});
+  props.push({x:side*8.2+k*20,z:3.1,half:.42,height:1.12});
+ }
  f.x+=f.vx*dt;
  f.z=(f.z||0)+(f.vz||0)*dt;
  // Collide with repeated crates and barrels. Sliding on free axis allows going around.
  const collide=(x,z)=>{const chunk=Math.round(x/20);for(let k=chunk-1;k<=chunk+1;k++)for(const side of [-1,1]){
-  for(let j=0;j<3;j++){const cx=side*(5.9+j*1.15)+k*20,cz=5.5+(j%2)*1.2;if(Math.abs(x-cx)<.83&&Math.abs(z-cz)<.83)return true;}
-  if(Math.hypot(x-(side*8.2+k*20),z-3.1)<.83)return true;
+  for(let j=0;j<3;j++){const cx=side*(5.9+j*1.15)+k*20,cz=5.5+(j%2)*1.2;if(Math.abs(x-cx)<.83&&Math.abs(z-cz)<.83&&f.y<.85-.12)return true;}
+  if(Math.hypot(x-(side*8.2+k*20),z-3.1)<.83&&f.y<1.12-.12)return true;
  }return false};
  if(collide(f.x,f.z)){if(!collide(f.x,oldZ))f.z=oldZ;else if(!collide(oldX,f.z))f.x=oldX;else{f.x=oldX;f.z=oldZ;}}
  f.shotTime=Math.max(0,(f.shotTime||0)-dt);
  const oldY=f.y;f.vy-=23*dt;f.y+=f.vy*dt;f.grounded=false;
  let landing=0;
+ if(f.vy<=0)for(const prop of props){if(Math.abs(f.x-prop.x)<prop.half+.22&&Math.abs(f.z-prop.z)<prop.half+.22&&oldY>=prop.height-.16&&f.y<=prop.height)landing=Math.max(landing,prop.height);}
  if(mode==='platform'&&f.vy<=0){
   const platforms=[[-5.2,2.05,1.54],[0,3.05,1.72],[5.1,2.1,1.54]];
   const chunk=Math.round(f.x/20);
@@ -230,7 +240,9 @@ function logic(dt){
   return;
  }
  if(match.phase!=='fight')return;
- const a=players[0],b=players[1],ctrl1=copyState(),ctrl2=role==='solo'?botControl(b,a,dt):remoteInput;
+ const a=players[0],b=players[1],ctrl1=copyState();
+ if(role==='solo'){botLearning.frames++;botLearning.shots+=ctrl1.shoot?1:0;botLearning.attacks+=ctrl1.light||ctrl1.heavy?1:0;botLearning.blocks+=ctrl1.block?1:0;}
+ const ctrl2=role==='solo'?botControl(b,a,dt):remoteInput;
  fighterStep(a,b,ctrl1,dt);fighterStep(b,a,ctrl2||{},dt);
  for(const [shooter,target] of [[a,b],[b,a]]){
   if(shooter.shotId&&shooter.shotId!==shooter.lastShotId){shooter.lastShotId=shooter.shotId;shooter.projectiles=shooter.projectiles||[];shooter.projectiles.push({x:shooter.x,z:shooter.z,y:shooter.y+1.4,dir:shooter.dir,life:1.35});}
@@ -351,6 +363,17 @@ function joinRoom(){
  peer.on('error',e=>setNet('Ошибка соединения: '+(e.type||e.message)));
 }
 function bindTouch(){
+ const pad=$('move-joystick'),knob=$('joystick-knob');let stickPointer=null;
+ const moveStick=e=>{if(stickPointer!==e.pointerId)return;const rect=pad.getBoundingClientRect(),radius=rect.width*.34;
+  let dx=e.clientX-(rect.left+rect.width/2),dy=e.clientY-(rect.top+rect.height/2);const length=Math.hypot(dx,dy)||1;const scale=Math.min(1,radius/length);dx*=scale;dy*=scale;
+  knob.style.transform=`translate(${dx}px,${dy}px)`;
+  input.left=dx< -radius*.24;input.right=dx>radius*.24;input.up=dy< -radius*.24;input.down=dy>radius*.24;
+ };
+ const releaseStick=e=>{if(stickPointer!==null&&e&&e.pointerId!==stickPointer)return;stickPointer=null;knob.style.transform='translate(0px,0px)';for(const key of ['left','right','up','down'])input[key]=false;};
+ pad.addEventListener('pointerdown',e=>{e.preventDefault();if(stickPointer!==null)return;stickPointer=e.pointerId;pad.setPointerCapture(e.pointerId);moveStick(e)});
+ pad.addEventListener('pointermove',e=>{e.preventDefault();moveStick(e)});
+ pad.addEventListener('pointerup',releaseStick);pad.addEventListener('pointercancel',releaseStick);pad.addEventListener('lostpointercapture',releaseStick);
+ window.addEventListener('blur',()=>releaseStick());
  document.querySelectorAll('[data-key]').forEach(b=>{
   const key=b.dataset.key;
   const down=e=>{e.preventDefault();input[key]=true;b.classList.add('pressed');try{b.setPointerCapture(e.pointerId)}catch(e){}};
