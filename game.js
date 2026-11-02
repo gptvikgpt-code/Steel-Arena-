@@ -1,5 +1,5 @@
 
-import {createGraphics} from './graphics.js?v=20261102s';
+import {createGraphics} from './graphics.js?v=20261102y';
 const $=id=>document.getElementById(id);
 const clamp=(v,min,max)=>Math.max(min,Math.min(max,v));
 const classes={
@@ -182,9 +182,7 @@ function fighterStep(f,enemy,inp,dt){
  f.superCool=Math.max(0,f.superCool-dt);f.dashCool=Math.max(0,f.dashCool-dt);f.shotCool=Math.max(0,(f.shotCool||0)-dt);
  f.comboClock=Math.max(0,f.comboClock-dt);
  if(f.comboClock<=0)f.combo=0;
- if(Math.abs(f.vx)>.2||Math.abs(f.vz||0)>.2){const mag=Math.hypot(f.vx,f.vz||0);f.facingX=f.vx/mag;f.facingZ=(f.vz||0)/mag;}
- else if(f.facingX===undefined){f.facingX=f.dir;f.facingZ=0;}
- f.dir=(f.facingX||0)<-.15?-1:(f.facingX||0)>.15?1:f.dir;
+ if(f.facingX===undefined){f.facingX=f.dir;f.facingZ=0;}
  // Attack direction and facing remain consistent while circling in 3D.
  const canMove=f.hitstun<=0;
  if(inp.block&&!f.prevBlock){f.parry=.16}
@@ -218,6 +216,8 @@ function fighterStep(f,enemy,inp,dt){
  }
  f.x+=f.vx*dt;
  f.z=(f.z||0)+(f.vz||0)*dt;
+ // Align first-person camera and firing with the current movement, not the previous frame.
+ if(Math.hypot(f.vx||0,f.vz||0)>.2){const len=Math.hypot(f.vx,f.vz);f.facingX=f.vx/len;f.facingZ=f.vz/len;f.dir=f.facingX<-.15?-1:f.facingX>.15?1:f.dir;}
  // Collide with repeated crates and barrels. Sliding on free axis allows going around.
  const collide=(x,z)=>{const chunk=Math.round(x/20);for(let k=chunk-1;k<=chunk+1;k++)for(const side of [-1,1]){
   for(let j=0;j<3;j++){const cx=side*(5.9+j*1.15)+k*20,cz=5.5+(j%2)*1.2;if(Math.abs(x-cx)<.83&&Math.abs(z-cz)<.83&&f.y<.85-.12)return true;}
