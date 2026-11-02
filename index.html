@@ -3,7 +3,7 @@
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,maximum-scale=1,user-scalable=no">
 <meta name="theme-color" content="#10172a"><meta name="description" content="Steel Arena — оригинальный 3D-файтинг. Выбирай бойца, тренируйся с ботом или сражайся с другом онлайн в браузере.">
 <title>Steel Arena — 3D Fighting Online</title>
-<link rel="stylesheet" href="./styles.css?v=20261102e">
+<link rel="stylesheet" href="./styles.css?v=20261102f">
 <script defer src="https://unpkg.com/peerjs@1.5.5/dist/peerjs.min.js"></script>
 </head><body>
 <canvas id="scene" aria-label="Трёхмерная боевая арена"></canvas>
@@ -17,11 +17,13 @@
 <div id="hint"></div>
 <button class="menu-btn" id="back-menu" aria-label="В главное меню">☰ МЕНЮ</button>
 <div class="announce" id="announce"></div>
-<div class="bottom-tip">A/D — движение · W — прыжок · J — удар · K — сильный · S — блок · Shift — рывок · L — техника · P — супер</div>
+<div class="bottom-tip">A/D — в стороны · W/S — в глубину · Space — прыжок · B — блок · J — удар · K — сильный · Shift — рывок · L — техника · P — супер</div>
 <div id="mobile-controls" aria-label="Сенсорное управление">
 <div class="touch-side touch-left">
+ <button class="touch-btn mini" data-key="up" aria-label="В глубину">▲</button>
  <button class="touch-btn" data-key="left" aria-label="Влево">◀</button>
  <button class="touch-btn" data-key="right" aria-label="Вправо">▶</button>
+ <button class="touch-btn mini" data-key="down" aria-label="К камере">▼</button>
  <div class="touch-stack"><button class="touch-btn mini" data-key="jump">↥<span style="font-size:0">Прыжок</span></button><button class="touch-btn mini" data-key="dash">РЫВОК</button></div>
 </div>
 <div class="touch-side">
@@ -90,5 +92,5 @@
   <div class="actions"><button class="play-btn" id="play-again">↻ ЕЩЁ РАЗ</button><button class="alt-btn" id="menu-return">В МЕНЮ</button></div>
  </div>
 </div>
-<script type="module" src="./game.js?v=20261102e"></script>
+<script type="module" src="./game.js?v=20261102f"></script>
 </body></html>
