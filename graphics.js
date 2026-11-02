@@ -31,7 +31,9 @@ export function createGraphics(canvas){
  const fill=new THREE.DirectionalLight(0x6caeff,1.45);fill.position.set(8,6,-10);scene.add(fill);
  const rim=new THREE.DirectionalLight(0x9edbff,2.3);rim.position.set(3,8,-5);scene.add(rim);
  let world=new THREE.Group();scene.add(world);let fighters=[],particles=[],glows=[],arenaColor=0xffac65,mode='duel',camShake=0,blur=0;
- let terrain=[],tilePrototype=null,backdrop=null,skyPlane=null,illustratedBackdrop=null,shotMeshes=[],cameraCenter=0,baseWidth=19,screenRatio=1,currentViewWidth=19;
+ let terrain=[],tilePrototype=null,backdrop=null,skyPlane=null,illustratedBackdrop=null,shotMeshes=[],cameraCenter=0,baseWidth=25,screenRatio=1,currentViewWidth=25;
+ let tiltTarget={x:0,y:0},tiltNow={x:0,y:0};
+ function setCameraTilt(x=0,y=0){tiltTarget.x=THREE.MathUtils.clamp(x,-1,1);tiltTarget.y=THREE.MathUtils.clamp(y,-1,1)}
  function skyTexture(colors){
   const c=document.createElement('canvas');c.width=512;c.height=256;const ctx=c.getContext('2d');
   const grd=ctx.createLinearGradient(0,0,0,256);colors.forEach((color,i)=>grd.addColorStop(i/(colors.length-1),color));ctx.fillStyle=grd;ctx.fillRect(0,0,512,256);
@@ -97,7 +99,7 @@ export function createGraphics(canvas){
    const h=4+(Math.sin(i*4.93)+1)*1.5;const x=i*4.4;
    const hill=cyl(tile,mat(arena==='grove'?0x1b5358:0x2b2945),x,h*.27,-18,2.1,3.7,h,5);hill.rotation.y=.34;
   }
-  const floor=box(tile,mat(p.stone),0,-.45,0,20.5,.9,19);
+  const floor=box(tile,mat(p.stone),0,-.45,0,20.5,.9,31);
   // Retro-action bridge details: crates, steel bands, warning barrels and banners.
   for(const side of [-1,1]){
    for(let j=0;j<3;j++){
@@ -115,7 +117,7 @@ export function createGraphics(canvas){
    box(tile,M.cream,side*7.5,2.65,-6.44,.38,.38,.06);
   }
   const paving=mat(arena==='city'?0x756781:arena==='grove'?0x617f78:0x988487);
-  for(let row=-4;row<=4;row+=2)for(let col=-9;col<=9;col+=2){
+  for(let row=-7;row<=7;row+=2)for(let col=-9;col<=9;col+=2){
    const slab=box(tile,paving,col*1.08+(row%2)*.38,.027,row*1.9,2.05,.065,3.55);
    slab.rotation.y=((row+col)%3-1)*.018;
   }
@@ -349,13 +351,15 @@ export function createGraphics(canvas){
   camShake=Math.max(0,camShake-delta*8);
   // Floating cinematic camera: orbit, dolly, vertical drift and true 3D parallax.
   const t=now*.00023;
-  const orbit=.55+Math.sin(t*.75)*.14;
+  tiltNow.x+=(tiltTarget.x-tiltNow.x)*Math.min(1,delta*5);
+  tiltNow.y+=(tiltTarget.y-tiltNow.y)*Math.min(1,delta*5);
+  const orbit=.40+Math.sin(t*.75)*.10+tiltNow.x*.27;
   const distance=Math.max(17,currentViewWidth/(2*Math.tan(THREE.MathUtils.degToRad(camera.fov/2))*camera.aspect)+2);
   const dolly=distance+Math.sin(t*.73)*1.35;
   camera.position.x=cameraCenter+Math.sin(orbit)*dolly*.72+Math.sin(now*.12)*camShake*.18;
-  camera.position.y=8.7+Math.sin(t*1.27)*.8+Math.cos(now*.11)*camShake*.14;
+  camera.position.y=10.4+tiltNow.y*3.1+Math.sin(t*1.27)*.45+Math.cos(now*.11)*camShake*.14;
   camera.position.z=Math.cos(orbit)*dolly;
-  camera.lookAt(cameraCenter,1.55,(a?.z??0)*.5+(b?.z??0)*.5);
+  camera.lookAt(cameraCenter+tiltNow.x*1.3,1.55,(a?.z??0)*.5+(b?.z??0)*.5+tiltNow.y*.9);
   camera.rotation.z=Math.sin(t*.8)*.012;
   renderer.render(scene,camera);
  }
@@ -373,9 +377,9 @@ export function createGraphics(canvas){
  }
  function resize(){
   const w=innerWidth,h=innerHeight;renderer.setSize(w,h,false);
-  screenRatio=h/w;baseWidth=Math.max(19,10.6*w/h);currentViewWidth=Math.max(baseWidth,currentViewWidth);
+  screenRatio=h/w;baseWidth=Math.max(25,14.5*w/h);currentViewWidth=Math.max(baseWidth,currentViewWidth);
   camera.aspect=w/h;camera.updateProjectionMatrix();
  }
  resize();addEventListener('resize',resize);
- return {setStage,sync,impact,resize,renderer};
+ return {setStage,sync,impact,resize,renderer,setCameraTilt};
 }
