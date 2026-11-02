@@ -40,7 +40,8 @@ export function createGraphics(canvas){
  const rim=new THREE.DirectionalLight(0x9edbff,2.3);rim.position.set(3,8,-5);scene.add(rim);
  let world=new THREE.Group();scene.add(world);let fighters=[],particles=[],glows=[],arenaColor=0xffac65,mode='duel',camShake=0,blur=0;
  let terrain=[],tilePrototype=null,backdrop=null,skyPlane=null,illustratedBackdrop=null,shotMeshes=[],cameraCenter=0,baseWidth=36,screenRatio=1,currentViewWidth=36;
- let tiltTarget={x:0,y:0},tiltNow={x:0,y:0};
+ let tiltTarget={x:0,y:0},tiltNow={x:0,y:0},firstPerson=false;
+ function setFirstPerson(enabled){firstPerson=!!enabled;camera.fov=firstPerson?75:48;camera.updateProjectionMatrix();}
  function setCameraTilt(x=0,y=0){tiltTarget.x=THREE.MathUtils.clamp(x,-1,1);tiltTarget.y=THREE.MathUtils.clamp(y,-1,1)}
  function skyTexture(colors){
   const c=document.createElement('canvas');c.width=512;c.height=256;const ctx=c.getContext('2d');
@@ -424,6 +425,15 @@ export function createGraphics(canvas){
   camera.position.z=Math.cos(orbit)*dolly;
   camera.lookAt(cameraCenter+tiltNow.x*1.3,1.55,(a?.z??0)*.5+(b?.z??0)*.5+tiltNow.y*.9);
   camera.rotation.z=Math.sin(t*.8)*.012;
+  if(firstPerson&&a){
+   const dx=a.facingX??a.dir??1,dz=a.facingZ??0,mag=Math.hypot(dx,dz)||1;
+   const fx=dx/mag,fz=dz/mag;
+   const eye=new THREE.Vector3(a.x,a.y+1.83,a.z||0);
+   const direction=new THREE.Vector3(fx,tiltNow.y*.28,fz).normalize();
+   camera.position.copy(eye);
+   camera.lookAt(eye.clone().addScaledVector(direction,15));
+   if(fighters[0])fighters[0].root.visible=false;
+  }
   renderer.render(scene,camera);
  }
  function impact(x,y,isSuper=false,parry=false){
@@ -444,5 +454,5 @@ export function createGraphics(canvas){
   camera.aspect=w/h;camera.updateProjectionMatrix();
  }
  resize();addEventListener('resize',resize);
- return {setStage,sync,impact,resize,renderer,setCameraTilt};
+ return {setStage,sync,impact,resize,renderer,setCameraTilt,setFirstPerson};
 }
