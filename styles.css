@@ -62,3 +62,9 @@
 .fight .tilt-camera{display:block}
 .tilt-camera[aria-pressed="true"]{background:#17604b;border-color:#8ce5c4}
 @media(max-width:650px){.tilt-camera{top:72px;left:8px;padding:6px 8px;font-size:9px}}
+
+.bot-count-control{margin:10px 0 14px;padding:12px 14px;border:1px solid #9ec5ff55;border-radius:12px;background:#16273c99;color:#f4f6ff}
+.bot-count-control label{display:flex;justify-content:space-between;align-items:center;font-weight:800;font-size:13px}
+.bot-count-control strong{font-size:24px;color:#ffcb72}
+.bot-count-control input{width:100%;margin:12px 0 7px;accent-color:#ffba60;cursor:pointer;touch-action:pan-x}
+.bot-count-control small{display:block;color:#bbcee4;font-size:11px}
