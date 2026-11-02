@@ -38,7 +38,7 @@ try {
     await page.goto(url, { waitUntil: 'domcontentloaded' });
     await page.waitForFunction(() => document.querySelector('#scene')?.width > 400 && typeof window.Peer === 'function', null, { timeout: 45000 });
     assert.equal(await page.locator('#fighter-list .pick').count(), 6);
-    assert.equal(await page.locator('#mobile-controls [data-key]').count(), 9);
+    assert.equal(await page.locator('#mobile-controls [data-key]').count(), 12, 'All 12 touch controls must be present');
   }
   for (const mode of ['duel', 'platform']) {
     await host.locator(`[data-pick="mode"][data-value="${mode}"]`).click();
@@ -54,7 +54,29 @@ try {
     assert.notEqual(await guest.locator('#time').innerText(), '∞');
     assert.ok(await host.locator('#mobile-controls').isVisible());
     assert.ok(await guest.locator('#mobile-controls').isVisible());
-    console.log(`${mode}: two clients connected; HUD and mobile controls visible`);
+    // Check real two-way input transmission and authoritative damage replication.
+    // Both players start seven units apart. Bring them into striking range using
+    // each device's own mobile controls; then attack from the host.
+    const press = (page, key) => page.locator(`#mobile-controls [data-key="${key}"]`).evaluate(el =>
+      el.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true, pointerId: 11 })));
+    const release = (page, key) => page.locator(`#mobile-controls [data-key="${key}"]`).evaluate(el =>
+      el.dispatchEvent(new PointerEvent('pointerup', { bubbles: true, pointerId: 11 })));
+    await Promise.all([press(host, 'right'), press(guest, 'left')]);
+    await host.waitForTimeout(550);
+    await Promise.all([release(host, 'right'), release(guest, 'left')]);
+    await host.waitForTimeout(250);
+    await press(host, 'light');
+    try {
+      await host.waitForFunction(() => parseFloat(document.querySelector('#hp2')?.style.width || '100') < 100, null, { timeout: 5000 });
+      await guest.waitForFunction(() => parseFloat(document.querySelector('#hp2')?.style.width || '100') < 100, null, { timeout: 5000 });
+    } finally {
+      await release(host, 'light');
+    }
+    const hostHp = Number.parseFloat(await host.locator('#hp2').evaluate(el => el.style.width));
+    const guestHp = Number.parseFloat(await guest.locator('#hp2').evaluate(el => el.style.width));
+    assert.ok(hostHp < 100 && guestHp < 100, 'Both players must observe damage');
+    assert.ok(Math.abs(hostHp - guestHp) <= 15, 'Guest health must follow authoritative host health');
+    console.log(`${mode}: two clients connected, mobile input and synchronized damage verified`);
     await host.locator('#back-menu').click();
     await guest.locator('#back-menu').click();
   }
