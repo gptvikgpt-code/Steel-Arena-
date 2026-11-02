@@ -16,14 +16,16 @@ function cyl(g,ma,x,y,z,r1,r2,h,n=9){return addMesh(g,new THREE.CylinderGeometry
 export function createGraphics(canvas){
  const renderer=new THREE.WebGLRenderer({canvas,antialias:true,powerPreference:'high-performance',alpha:false});
  renderer.outputColorSpace=THREE.SRGBColorSpace;
+ renderer.toneMapping=THREE.ACESFilmicToneMapping;renderer.toneMappingExposure=1.38;
  renderer.shadowMap.enabled=true;renderer.shadowMap.type=THREE.PCFSoftShadowMap;
  renderer.setPixelRatio(Math.min(devicePixelRatio||1,1.75));
- const scene=new THREE.Scene();scene.fog=new THREE.Fog(0x1c213f,30,65);
+ const scene=new THREE.Scene();scene.fog=new THREE.FogExp2(0x1c213f,.013);
  const camera=new THREE.PerspectiveCamera(46,1,.1,220);
  camera.position.set(0,7.8,25);camera.lookAt(0,2,0);
  scene.add(new THREE.HemisphereLight(0xcbdffb,0x65506a,2.1));
  const sun=new THREE.DirectionalLight(0xffe3bd,3);sun.position.set(-6,14,9);sun.castShadow=true;sun.shadow.mapSize.set(1024,1024);sun.shadow.camera.left=-17;sun.shadow.camera.right=17;sun.shadow.camera.top=15;sun.shadow.camera.bottom=-14;sun.shadow.normalBias=.025;scene.add(sun);
  const fill=new THREE.DirectionalLight(0x6caeff,1.45);fill.position.set(8,6,-10);scene.add(fill);
+ const rim=new THREE.DirectionalLight(0x9edbff,2.3);rim.position.set(3,8,-5);scene.add(rim);
  let world=new THREE.Group();scene.add(world);let fighters=[],particles=[],glows=[],arenaColor=0xffac65,mode='duel',camShake=0,blur=0;
  let terrain=[],tilePrototype=null,backdrop=null,skyPlane=null,cameraCenter=0,baseWidth=19,screenRatio=1,currentViewWidth=19;
  function skyTexture(colors){
@@ -60,6 +62,19 @@ export function createGraphics(canvas){
   const floor=box(tile,mat(p.stone),0,-.45,0,20.5,.9,8.8);
   const groundGrid=new THREE.GridHelper(20,20,0xb3a4bd,0x5a526d);groundGrid.position.y=.018;groundGrid.material.transparent=true;groundGrid.material.opacity=.18;tile.add(groundGrid);
   box(tile,M.ink,0,-.89,0,21,.18,9.2);
+  // Layered foreground and background geometry makes the arena read as a deep 3D space.
+  for(let j=0;j<9;j++){
+   const x=-9+j*2.3, depth=-10-(j%3)*3.8;
+   const rock=addMesh(tile,new THREE.DodecahedronGeometry(.65+(j%3)*.28,0),mat(arena==='grove'?0x365b62:0x50435e),x,.05,depth);
+   rock.scale.set(1.35,.6,1.1);rock.rotation.y=j*.63;
+   const pillar=cyl(tile,mat(p.stone),x,1.2,depth-1.6,.25,.36,2.4,8);
+   pillar.rotation.z=(j%2?1:-1)*.08;
+  }
+  for(let j=0;j<12;j++){
+   const x=-9+j*1.7;
+   const pebble=addMesh(tile,new THREE.IcosahedronGeometry(.13+(j%3)*.045,0),mat(j%2?0xa9a0ae:0x6c697d),x,.045,3.8+(j%3)*.85);
+   pebble.scale.set(1.6,.36,.9);pebble.castShadow=false;
+  }
   for(let x=-10;x<=10;x+=1){box(tile,mat(arena==='city'?0x7c668e:0xb0a2a0),x,-.009,2.9,.05,.025,5.7)}
   for(let x=-9;x<=9;x+=3){box(tile,M.gold,x,-.015,3.7,.3,.025,.33)}
   // No walls: the floor repeats endlessly as the camera follows the fighters.
@@ -104,17 +119,31 @@ export function createGraphics(canvas){
   cyl(torso,primary,0,.32,0,.5,.37,1.04,9);
   box(torso,secondary,0,.46,.36,.79,.25,.15);
   box(torso,M.gold,0,-.1,.28,.92,.13,.45);
+  // Raised armour plates and layered chest geometry add visible highlights and depth.
+  const chest=addMesh(torso,new THREE.SphereGeometry(.52,16,12),primary,0,.36,.09);
+  chest.scale.set(1,.87,.72);
+  for(const side of [-1,1]){
+   const plate=addMesh(torso,new THREE.SphereGeometry(.31,12,9),metal,side*.27,.43,.36);
+   plate.scale.set(.92,.82,.35);
+   const clasp=ball(torso,M.gold,side*.3,.24,.49,.065,10);
+  }
+  box(torso,M.ink,0,.32,.53,.08,.68,.045);
   const shoulders=[];
   for(let s of [-1,1]){
    const arm=new THREE.Group();arm.position.set(s*.64,.68,0);torso.add(arm);shoulders.push(arm);
    ball(arm,metal,0,-.09,0,.25);
+   const pauldron=addMesh(arm,new THREE.SphereGeometry(.34,14,10),secondary,0,-.12,.04);
+   pauldron.scale.set(1.22,.68,1.15);
+   box(arm,M.gold,0,-.27,.29,.42,.07,.09);
    cyl(arm,primary,0,-.45,0,.18,.2,.64,8);
    ball(arm,skin,0,-.84,0,.19);
    box(arm,M.ink,0,-.7,.02,.33,.28,.35);
   }
   const cape=box(torso,secondary,0,-.18,-.38,1.08,1.25,.11);cape.rotation.x=.09;
   const head=new THREE.Group();head.position.set(0,2.46,.05);g.add(head);
-  ball(head,skin,0,0,0,.41,17);
+  ball(head,skin,0,0,0,.41,20);
+  ball(head,skin,0,-.16,.28,.18,12);
+  for(const side of [-1,1])ball(head,skin,side*.37,-.04,0,.095,10);
   for(const s of [-1,1]) {ball(head,M.ink,s*.15,.065,.348,.056,8);box(head,M.cream,s*.15,.08,.383,.025,.018,.018)}
   const mouth=box(head,secondary,0,-.18,.37,.2,.035,.03);
   if(style.id==='ronin'){cyl(head,M.ink,0,.33,0,.43,.4,.31,10);const pony=addMesh(head,new THREE.ConeGeometry(.2,.6,8),M.ink,0,.78,-.12);pony.rotation.z=.22}
@@ -214,6 +243,7 @@ export function createGraphics(canvas){
   camera.position.x=cameraCenter+Math.sin(now*.12)*camShake*.18;
   camera.position.y=7.8+Math.cos(now*.11)*camShake*.14;
   camera.position.z=Math.max(21, currentViewWidth/(2*Math.tan(THREE.MathUtils.degToRad(camera.fov/2))*camera.aspect)+4);
+  camera.position.x+=Math.sin(now*.00023)*.22;
   camera.lookAt(cameraCenter,2,0);
   renderer.render(scene,camera);
  }
