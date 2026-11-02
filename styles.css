@@ -57,3 +57,8 @@
 #mobile-controls .face-a{bottom:0;left:50%;transform:translateX(-50%);background:#36865c}
 #mobile-controls .gamepad-face.pressed{filter:brightness(1.4)}
 @media(max-width:650px){#mobile-controls .shoulder-buttons .touch-btn{width:38px;font-size:8px}#mobile-controls .face-buttons{width:145px;height:115px}#mobile-controls .gamepad-face{width:43px;height:43px}}
+
+.tilt-camera{position:fixed;z-index:7;top:clamp(82px,14vh,112px);left:12px;display:none;padding:9px 12px;border:1px solid #b7e7ff99;border-radius:12px;color:white;background:#193d60e8;font-weight:800;font-size:11px;box-shadow:0 4px 12px #0009;touch-action:manipulation}
+.fight .tilt-camera{display:block}
+.tilt-camera[aria-pressed="true"]{background:#17604b;border-color:#8ce5c4}
+@media(max-width:650px){.tilt-camera{top:72px;left:8px;padding:6px 8px;font-size:9px}}
