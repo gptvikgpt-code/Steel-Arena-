@@ -21,13 +21,13 @@ const weapons={
 const defaultWeapons={ronin:'sword',knight:'hammer',ninja:'daggers',mage:'staff',brute:'axe',lancer:'spear'};
 const equipped=id=>weapons[id]||weapons.sword;
 const gfx=createGraphics($('scene'));
-const controls=['left','right','jump','light','heavy','block','dash','special','super'];
+const controls=['left','right','up','down','jump','light','heavy','block','dash','special','super'];
 const input=Object.fromEntries(controls.map(x=>[x,false]));
 let role='menu',peer=null,connection=null,remoteInput={},networkTick=0;
 let choice='ronin',weaponChoice='sword',arena='temple',mode='endless',players=[],match=null,lastFx=0,noticeDeadline=0,worldTime=0;
 const MAX_ROUND_TIME=90;
 const copyState=()=>Object.fromEntries(controls.map(k=>[k,!!input[k]]));
-const names={left:'A / ←',right:'D / →',jump:'W / ↑',light:'J',heavy:'K',block:'S',dash:'Shift',special:'L',super:'P'};
+const names={left:'A / ←',right:'D / →',up:'↑',down:'↓',jump:'W / ↑',light:'J',heavy:'K',block:'S',dash:'Shift',special:'L',super:'P'};
 function previewStyles(){return [{...classes[choice],weapon:weaponChoice},{...classes.knight,weapon:'hammer'}]}
 function select(which,value){
  if(which==='hero')choice=value;
@@ -41,7 +41,7 @@ for(const b of document.querySelectorAll('[data-pick]')){
  b.addEventListener('click',()=>select(b.dataset.pick,b.dataset.value));
 }
 function freshFighter(id,style,x,dir,weapon=id===0?weaponChoice:(defaultWeapons[style]||'sword')){
- return {id,style,weapon:equipped(weapon).id,x,y:0,vx:0,vy:0,dir,hp:100,chi:0,grounded:true,jumps:0,prevJump:false,block:false,parry:0,
+ return {id,style,weapon:equipped(weapon).id,x,y:0,z:id===0?2.3:-2.3,vx:0,vz:0,vy:0,dir,hp:100,chi:0,grounded:true,jumps:0,prevJump:false,block:false,parry:0,
  hitstun:0,invuln:0,dashTimer:0,dashCool:0,attack:null,attackCool:0,specialCool:0,superCool:0,combo:0,comboClock:0,prevBlock:false};
 }
 function announce(text,seconds=1.2){const el=$('announce');el.textContent=text;el.classList.add('visible');noticeDeadline=performance.now()+seconds*1000;}
@@ -126,8 +126,9 @@ function handleAttack(attacker,defender){
  const elapsed=a.duration-a.remaining;
  if(elapsed<a.start||elapsed>a.start+a.active)return;
  const distance=(defender.x-attacker.x)*attacker.dir;
+ const depth=Math.abs((defender.z||0)-(attacker.z||0));
  const tolerance=a.kind==='super'?2.7:1.8;
- if(distance>-.45 && distance<a.range && Math.abs(attacker.y-defender.y)<tolerance){
+ if(distance>-.45 && distance<a.range && depth<1.8 && Math.abs(attacker.y-defender.y)<tolerance){
   a.hit=true;
   const blocked=defender.block&&defender.dir===-attacker.dir;
   const parried=blocked&&defender.parry>0;
@@ -135,9 +136,10 @@ function handleAttack(attacker,defender){
  }
 }
 function botControl(f,target,delta){
- const dst=target.x-f.x,abs=Math.abs(dst);
+ const dst=target.x-f.x,abs=Math.abs(dst),dz=(target.z||0)-(f.z||0);
  const brave=weaponRange(f)+.1;const r={
  left:dst<0&&abs>brave*.75,right:dst>0&&abs>brave*.75,
+ up:dz<-.65,down:dz>.65,
  jump:mode==='platform'&&abs>3&&Math.random()<delta*.5,block:false,
  dash:abs>5&&Math.random()<delta*.22,light:false,heavy:false,special:false,super:false
  };
@@ -168,6 +170,8 @@ function fighterStep(f,enemy,inp,dt){
   if(f.dashTimer>0){f.dashTimer-=dt}else{
    const axis=(inp.right?1:0)-(inp.left?1:0);
    f.vx=axis*runSpeed*(f.block?.3:f.attack?.4:1);
+   const depthAxis=(inp.down?1:0)-(inp.up?1:0);
+   f.vz=depthAxis*runSpeed*(f.block?.3:f.attack?.4:1)*.85;
   }
   const jumpNow=!!inp.jump&&!f.prevJump;f.prevJump=!!inp.jump;
   if(jumpNow&&(f.grounded||(f.style==='ninja'&&f.jumps<2))){
@@ -181,6 +185,7 @@ function fighterStep(f,enemy,inp,dt){
   }
  }
  f.x+=f.vx*dt; // No horizontal world boundary: camera follows both fighters.
+ f.z=(f.z||0)+(f.vz||0)*dt; // Real third dimension: approach and sidestep.
  const oldY=f.y;f.vy-=23*dt;f.y+=f.vy*dt;f.grounded=false;
  let landing=0;
  if(mode==='platform'&&f.vy<=0){
