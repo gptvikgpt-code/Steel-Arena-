@@ -285,17 +285,18 @@ export function createGraphics(canvas){
   // Floating player nameplates follow fighters and disappear on defeat.
   fighterStates.forEach((state,i)=>{
    if(!state||!fighters[i])return;
-   const f=fighters[i],name=String(state.nick||('БОТ '+i)).slice(0,16);
-   if(f.nameplateText!==name){
+   const f=fighters[i],name=String(state.nick||('БОТ '+i)).slice(0,16),teamKey=state.team??(i===0?'self':'enemy');
+   if(f.nameplateText!==name||f.nameplateTeam!==teamKey){
     if(f.nameplate){f.root.remove(f.nameplate);f.nameplate.material.map.dispose();f.nameplate.material.dispose();}
     const canvas=document.createElement('canvas');canvas.width=512;canvas.height=128;
-    const ctx=canvas.getContext('2d');ctx.fillStyle=i===0?'rgba(11,57,82,.85)':'rgba(80,23,27,.85)';
+    const ctx=canvas.getContext('2d');const ally=state.team!=null&&fighterStates[0]?.team!=null?state.team===fighterStates[0].team:i===0;
+    ctx.fillStyle=ally?'rgba(11,57,82,.85)':'rgba(80,23,27,.85)';
     ctx.beginPath();ctx.roundRect(10,10,492,108,25);ctx.fill();
-    ctx.strokeStyle=i===0?'#86edff':'#ffb4a4';ctx.lineWidth=5;ctx.stroke();
+    ctx.strokeStyle=ally?'#86edff':'#ffb4a4';ctx.lineWidth=5;ctx.stroke();
     ctx.fillStyle='#ffffff';ctx.font='bold 56px sans-serif';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText(name,256,66,455);
     const texture=new THREE.CanvasTexture(canvas);texture.colorSpace=THREE.SRGBColorSpace;
     f.nameplate=new THREE.Sprite(new THREE.SpriteMaterial({map:texture,transparent:true,depthWrite:false,depthTest:false}));
-    f.nameplate.position.set(0,3.4,0);f.nameplate.scale.set(2.7,.68,1);f.root.add(f.nameplate);f.nameplateText=name;
+    f.nameplate.position.set(0,3.4,0);f.nameplate.scale.set(2.7,.68,1);f.root.add(f.nameplate);f.nameplateText=name;f.nameplateTeam=teamKey;
    }
   });
   fighters.forEach((f,i)=>{f.root.visible=i<fighterStates.length&&fighterStates[i]?.hp>0});
