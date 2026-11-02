@@ -1,0 +1,40 @@
+name: Steel Arena cross-runner WebRTC experiment
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+concurrency:
+  group: steel-arena-cross-runner
+  cancel-in-progress: true
+jobs:
+  separate-machines:
+    name: ${{ matrix.mode }} / ${{ matrix.role }} / ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { role: host, mode: duel, os: ubuntu-latest, browser: chromium }
+          - { role: guest, mode: duel, os: macos-latest, browser: webkit }
+          - { role: host, mode: platform, os: ubuntu-latest, browser: chromium }
+          - { role: guest, mode: platform, os: macos-latest, browser: webkit }
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: npm install --no-audit --no-fund
+      - run: node --check tests/cross-runner.mjs
+      - run: npx playwright install --with-deps chromium
+        if: matrix.browser == 'chromium'
+      - run: npx playwright install webkit
+        if: matrix.browser == 'webkit'
+      - name: Exercise real WebRTC across separate cloud machines
+        env:
+          ARENA_TEST_ROLE: ${{ matrix.role }}
+          ARENA_TEST_MODE: ${{ matrix.mode }}
+        run: node tests/cross-runner.mjs
+      - name: Scope
+        if: success()
+        run: echo 'Cross-runner pass is not a physical Android/iPhone cross-carrier certification.'
