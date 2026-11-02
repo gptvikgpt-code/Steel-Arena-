@@ -1,25 +1,84 @@
-<!doctype html><html lang="ru"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Steel Arena 3D</title><style>body{margin:0;background:#080b16;color:#fff;font:16px system-ui;text-align:center;overflow:hidden}header{position:absolute;z-index:2;top:4px;width:100%;pointer-events:none;text-shadow:0 2px 5px #000}h2{margin:3px}#status{font-size:12px;color:#e4d4aa}.controls{position:absolute;bottom:16px;width:100%;display:flex;justify-content:space-around;z-index:2}button{background:#ad4337cc;color:white;border:1px solid #e6b79d;border-radius:14px;padding:12px 14px;font-weight:700;font-size:14px;touch-action:none}canvas{display:block}#health{display:flex;justify-content:space-between;margin:8px 20px;font-size:14px}</style></head><body><header><h2>⚔️ STEEL ARENA 3D</h2><div id="status">3D-прототип • бой против бота • онлайн-комнаты пока недоступны</div><div id="modes" style="pointer-events:auto"><button onclick="window.setMode('duel')">⚔️ Дуэль</button><button onclick="window.setMode('platform')">🪽 Платформы</button></div><div id="health"><span id="h1">Игрок 100</span><span id="h2">Противник 100</span></div></header><div class="controls"><div><button id="left">◀</button><button id="right">▶</button></div><div><button id="jump">ПРЫЖОК</button><button id="block">ЩИТ</button><button id="attack">УДАР ⚔️</button></div></div><script type="module">
-import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.169.0/build/three.module.js';
-const scene=new THREE.Scene();scene.background=new THREE.Color(0x111728);scene.fog=new THREE.Fog(0x111728,18,48);
-const camera=new THREE.PerspectiveCamera(46,innerWidth/innerHeight,.1,140);function fitCamera(){let a=innerWidth/innerHeight;camera.aspect=a;camera.position.set(0,5.8,Math.max(16,12/a));camera.lookAt(0,2,0);camera.updateProjectionMatrix()}fitCamera();
-const renderer=new THREE.WebGLRenderer({antialias:true});renderer.setSize(innerWidth,innerHeight);renderer.setPixelRatio(Math.min(devicePixelRatio,2));renderer.shadowMap.enabled=true;document.body.prepend(renderer.domElement);
-scene.add(new THREE.HemisphereLight(0x9fbaff,0x34231e,2));let sun=new THREE.DirectionalLight(0xffd8a2,3);sun.position.set(-5,12,8);sun.castShadow=true;scene.add(sun);
-const mat=(color,metalness=0)=>new THREE.MeshStandardMaterial({color,metalness,roughness:metalness?.32:.8});
-const stone=mat(0x414b60),gold=mat(0xd8b77a,.7),floor=mat(0x555463);
-function box(w,h,d,m,x,y,z,parent=scene){let o=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),m);o.position.set(x,y,z);o.castShadow=true;o.receiveShadow=true;parent.add(o);return o}
-box(25,.7,11,floor,0,-.45,0);for(let i=-12;i<=12;i+=2){box(.06,.015,11,stone,i,-.08,0)}for(let x of [-11,11])for(let z of [-4,4]){box(.9,4,.9,stone,x,1.8,z);box(1.25,.3,1.25,gold,x,3.9,z)}
-for(let i=0;i<16;i++){let a=i*Math.PI/8;box(1,2,1,mat(0x262e40),Math.cos(a)*17,.3,Math.sin(a)*13)}
-function warrior(color,x,flip){let root=new THREE.Group();root.position.x=x;root.rotation.y=flip?Math.PI:0;scene.add(root);const armor=mat(color,.8),dark=mat(0x252c3c,.65),steel=mat(0xdde5ec,.9);
-box(.8,1.25,.55,armor,0,2.05,0,root);box(.7,.65,.65,steel,0,3.1,0,root);box(.8,.18,.8,gold,0,3.5,0,root);
-for(let side of [-1,1]){box(.3,.9,.32,dark,side*.25,.95,0,root);box(.43,.38,.65,armor,side*.62,2.65,0,root)}
-let arm=new THREE.Group();arm.position.set(.7,2.52,0);root.add(arm);box(.25,1.05,.28,armor,0,-.5,0,arm);box(.16,1.65,.12,steel,.05,-1.72,0,arm);box(.48,.12,.22,gold,.05,-1.05,0,arm);
-let shield=box(.22,1.2,.85,steel,-.95,1.9,.15,root);return {root,arm,shield,hp:100,x,attack:0,blocking:false}}
-let player=warrior(0x3479c9,-4,false),enemy=warrior(0xc34a39,4,true),keys={},cool=0,botcool=0,mode='duel',vy=0,ground=0,botVy=0,botGround=0;
-const platforms=[];for(let x of [-5,0,5]){let p=box(3,.35,2,mat(0x7b7292),x,1.2,-.3);platforms.push(p);p.visible=false}
-window.setMode=m=>{mode=m;player.hp=100;enemy.hp=100;player.x=-4;enemy.x=4;cool=botcool=1.2;ground=botGround=vy=botVy=0;platforms.forEach(p=>p.visible=m==='platform');document.getElementById('status').textContent=m==='duel'?'⚔️ Классическая дуэль против бота':'🪽 Платформенный режим против бота'};
-
-for(let id of ['left','right','attack','block','jump']){let b=document.getElementById(id);b.onpointerdown=e=>{e.preventDefault();keys[id]=true;b.setPointerCapture(e.pointerId)};b.onpointerup=b.onpointercancel=()=>keys[id]=false}
-onkeydown=e=>{let k=e.key.toLowerCase();if(k==='a'||k==='arrowleft')keys.left=true;if(k==='d'||k==='arrowright')keys.right=true;if(k===' ')keys.attack=true;if(k==='s')keys.block=true;if(k==='w'||k==='arrowup')keys.jump=true};onkeyup=e=>{let k=e.key.toLowerCase();if(k==='a'||k==='arrowleft')keys.left=false;if(k==='d'||k==='arrowright')keys.right=false;if(k===' ')keys.attack=false;if(k==='s')keys.block=false;if(k==='w'||k==='arrowup')keys.jump=false};
-function animate(t){requestAnimationFrame(animate);let dt=Math.min(.04,(t-(animate.prev||t))/1000);animate.prev=t;if(player.hp>0&&enemy.hp>0){player.blocking=!!keys.block;if(keys.left)player.x-=dt*4;if(keys.right)player.x+=dt*4;player.x=Math.max(-9,Math.min(9,player.x));enemy.x+=Math.sign(player.x-enemy.x)*dt*1.5;enemy.x=Math.max(-9,Math.min(9,enemy.x));if(mode==='platform'){if(keys.jump&&ground<=.01)vy=7.5;vy-=17*dt;let previous=ground;ground=Math.max(0,ground+vy*dt);if(ground===0)vy=0;for(let p of platforms){let top=p.position.y+.175;if(vy<=0&&previous>=top-.15&&ground<=top&&Math.abs(player.x-p.position.x)<1.55){ground=top;vy=0}}if(botGround===0&&Math.random()<dt*.6)botVy=7;botVy-=17*dt;botGround=Math.max(0,botGround+botVy*dt);if(botGround===0)botVy=0}else{ground=botGround=0;vy=botVy=0}cool-=dt;botcool-=dt;if(keys.attack&&cool<=0){cool=.65;player.attack=.35;if(Math.abs(player.x-enemy.x)<2.2&&Math.abs(ground-botGround)<1.7)enemy.hp=Math.max(0,enemy.hp-13)}if(Math.abs(player.x-enemy.x)<1.65&&Math.abs(ground-botGround)<1.7&&botcool<=0){botcool=1.1;enemy.attack=.35;player.hp=Math.max(0,player.hp-(player.blocking?2:10))}}for(let w of [player,enemy]){w.root.position.x=w.x;w.root.position.y=w===player?ground:botGround;w.attack=Math.max(0,w.attack-dt);w.arm.rotation.z=w.attack?Math.sin((.35-w.attack)/.35*Math.PI)*-1.8:0;w.shield.position.y=w===player&&w.blocking?2.25:1.9;w.root.position.y+=(Math.sin(t*.003)*.04)}document.getElementById('h1').textContent='Игрок '+player.hp;document.getElementById('h2').textContent='Противник '+enemy.hp;if(!player.hp||!enemy.hp)document.getElementById('status').textContent=player.hp?'🏆 Победа! Перезагрузи страницу для нового боя':'💀 Поражение! Перезагрузи страницу';renderer.render(scene,camera)}window.setMode('duel');requestAnimationFrame(animate);
-onresize=()=>{fitCamera();renderer.setSize(innerWidth,innerHeight)};
-</script></body></html>
+<!doctype html>
+<html lang="ru"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,maximum-scale=1,user-scalable=no">
+<meta name="theme-color" content="#10172a"><meta name="description" content="Steel Arena — оригинальный 3D-файтинг. Выбирай бойца, тренируйся с ботом или сражайся с другом онлайн в браузере.">
+<title>Steel Arena — 3D Fighting Online</title>
+<link rel="stylesheet" href="./styles.css">
+<script defer src="https://unpkg.com/peerjs@1.5.5/dist/peerjs.min.js"></script>
+</head><body>
+<canvas id="scene" aria-label="Трёхмерная боевая арена"></canvas>
+<div id="vignette"></div><div id="flash"></div>
+<div id="hud" aria-live="off">
+<div class="bars">
+ <div class="fighter-hud"><div id="name1" class="fighter-id">РОНИН</div><div class="health"><i id="hp1"></i></div><div class="energy"><i id="chi1"></i></div></div>
+ <div class="center-hud"><div class="timer" id="time">90</div><div id="rounds" class="rounds">○○ · ○○</div></div>
+ <div class="fighter-hud right"><div id="name2" class="fighter-id">СТРАЖ</div><div class="health"><i id="hp2"></i></div><div class="energy"><i id="chi2"></i></div></div>
+</div></div>
+<div id="hint"></div>
+<button class="menu-btn" id="back-menu" aria-label="В главное меню">☰ МЕНЮ</button>
+<div class="announce" id="announce"></div>
+<div class="bottom-tip">A/D — движение · W — прыжок · J — удар · K — сильный · S — блок · Shift — рывок · L — техника · P — супер</div>
+<div id="mobile-controls" aria-label="Сенсорное управление">
+<div class="touch-side touch-left">
+ <button class="touch-btn" data-key="left" aria-label="Влево">◀</button>
+ <button class="touch-btn" data-key="right" aria-label="Вправо">▶</button>
+ <div class="touch-stack"><button class="touch-btn mini" data-key="jump">↥<span style="font-size:0">Прыжок</span></button><button class="touch-btn mini" data-key="dash">РЫВОК</button></div>
+</div>
+<div class="touch-side">
+ <div class="touch-stack"><button class="touch-btn mini" data-key="block">БЛОК</button><button class="touch-btn mini" data-key="special">ТЕХН.</button></div>
+ <div class="touch-stack"><button class="touch-btn" data-key="light">УДАР</button><button class="touch-btn mini" data-key="super">СУПЕР</button></div>
+ <button class="touch-btn" data-key="heavy">СИЛА</button>
+</div></div>
+<div id="menu" class="menu">
+<div class="menu-panel">
+<header><div><div class="eyebrow">ORIGINAL 3D ARENA FIGHTER • BROWSER EDITION</div><h1 class="brand">⚔ STEEL ARENA</h1></div><p class="subtitle">Два режима боя. Шесть героев. Победа за два раунда. Android • iPhone • PC</p></header>
+<div class="config-layout">
+<section>
+ <div class="section-title">01 / ВЫБЕРИ СВОЕГО БОЙЦА</div>
+ <div class="fighters" id="fighter-list">
+  <button class="pick selected" data-pick="hero" data-value="ronin"><span class="portrait">⚔️</span><b>РОНИН</b><small>Меч • баланс</small></button>
+  <button class="pick" data-pick="hero" data-value="knight"><span class="portrait">🛡️</span><b>СТРАЖ</b><small>Броня • контроль</small></button>
+  <button class="pick" data-pick="hero" data-value="ninja"><span class="portrait">🌑</span><b>ТЕНЬ</b><small>Скорость • рывки</small></button>
+  <button class="pick" data-pick="hero" data-value="mage"><span class="portrait">✨</span><b>АРКАНИСТ</b><small>Энергия • магия</small></button>
+  <button class="pick" data-pick="hero" data-value="brute"><span class="portrait">🔥</span><b>ТИТАН</b><small>Сила • захват</small></button>
+  <button class="pick" data-pick="hero" data-value="lancer"><span class="portrait">🔱</span><b>КОПЕЙЩИК</b><small>Дальность • выпад</small></button>
+ </div>
+ <div class="feature">⚡ <strong>В бою:</strong> лёгкий и сильный удары, щит и парирование, рывок, двойной прыжок у Тени, особая техника и суперудар за энергию.</div>
+</section>
+<section>
+ <div class="section-title">02 / РЕЖИМ</div>
+ <div class="options">
+  <button class="option selected" data-pick="mode" data-value="duel"><b>⚔️ ДУЭЛЬ</b><small>Классический бой 1×1</small></button>
+  <button class="option" data-pick="mode" data-value="platform"><b>🪽 ПЛАТФОРМЫ</b><small>Прыжки и уровни</small></button>
+ </div>
+ <div class="section-title">03 / АРЕНА</div>
+ <div class="options">
+  <button class="option selected" data-pick="arena" data-value="temple"><b>⛩️ ХРАМ</b><small>Закат и фонари</small></button>
+  <button class="option" data-pick="arena" data-value="grove"><b>🎋 РОЩА</b><small>Нефрит и бамбук</small></button>
+  <button class="option" data-pick="arena" data-value="city"><b>🌃 ГОРОД</b><small>Неоновые крыши</small></button>
+ </div>
+ <div class="section-title">04 / ИГРАТЬ</div>
+ <div class="actions">
+  <button class="play-btn" id="start-bot">▶ БОЙ С БОТОМ</button>
+  <button class="alt-btn" id="create-room">🌐 СОЗДАТЬ ОНЛАЙН</button>
+ </div>
+ <div class="code-row"><input class="code-input" id="join-code" maxlength="6" placeholder="КОД ДРУГА" aria-label="Код комнаты"><button class="ghost-btn" id="join-room">ВОЙТИ</button></div>
+ <div id="room-block" class="hidden">
+  <div class="eyebrow">ТВОЯ КОМНАТА</div><div class="code-row"><div id="room-code">------</div><button class="ghost-btn" id="copy-invite">🔗 КОПИРОВАТЬ</button></div>
+  <input id="invite-link" class="code-input" aria-label="Ссылка приглашения" readonly value="">
+  <div id="net-status" role="status"></div>
+ </div>
+</section>
+</div>
+<p class="subtitle" style="margin-bottom:0;margin-top:13px;font-size:11px">Бесплатная ранняя версия Steel Arena. Онлайн использует прямое WebRTC-подключение: качество связи зависит от сети обоих игроков. Для телефонов рекомендуем горизонтальную ориентацию.</p>
+</div></div>
+<div id="result-screen" class="menu hidden">
+ <div class="menu-panel" style="max-width:440px;text-align:center">
+  <div class="eyebrow">STEEL ARENA • БОЙ ЗАВЕРШЁН</div>
+  <h2 class="brand" id="winner-text">ПОБЕДА!</h2>
+  <p class="subtitle" id="score-text">2 : 0</p>
+  <div class="actions"><button class="play-btn" id="play-again">↻ ЕЩЁ РАЗ</button><button class="alt-btn" id="menu-return">В МЕНЮ</button></div>
+ </div>
+</div>
+<script type="module" src="./game.js"></script>
+</body></html>
