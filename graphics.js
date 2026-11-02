@@ -25,6 +25,7 @@ export function createGraphics(canvas){
  const sun=new THREE.DirectionalLight(0xffe3bd,3);sun.position.set(-6,14,9);sun.castShadow=true;sun.shadow.mapSize.set(1024,1024);sun.shadow.camera.left=-17;sun.shadow.camera.right=17;sun.shadow.camera.top=15;sun.shadow.camera.bottom=-14;sun.shadow.normalBias=.025;scene.add(sun);
  const fill=new THREE.DirectionalLight(0x6caeff,1.45);fill.position.set(8,6,-10);scene.add(fill);
  let world=new THREE.Group();scene.add(world);let fighters=[],particles=[],glows=[],arenaColor=0xffac65,mode='duel',camShake=0,blur=0;
+ let terrain=[],tilePrototype=null,backdrop=null,skyPlane=null,cameraCenter=0,baseWidth=19,screenRatio=1,currentViewWidth=19;
  function skyTexture(colors){
   const c=document.createElement('canvas');c.width=1024;c.height=512;const ctx=c.getContext('2d');
   const grd=ctx.createLinearGradient(0,0,0,512);colors.forEach((color,i)=>grd.addColorStop(i/(colors.length-1),color));ctx.fillStyle=grd;ctx.fillRect(0,0,1024,512);
@@ -47,41 +48,44 @@ export function createGraphics(canvas){
   for(let j=0;j<3;j++){const xx=(j-1)*.38;cyl(ob,mat([0x4c8e73,0x6dba84,0x9bcf8f][j]),xx,2+j*.25,0,.075,.095,4+j*.6,7);for(let v=.9;v<4.3;v+=.72){cyl(ob,M.cream,xx,v,0,.09,.09,.034);for(const d of [-1,1]){let leaf=addMesh(ob,new THREE.ConeGeometry(.2,.85,5),mat(0x61ac80),xx+d*.18,v+.18,0);leaf.rotation.z=d*.95}}}
  }
  function setStage(arena,playMode,styles){
-  scene.remove(world);world=new THREE.Group();scene.add(world);particles=[];glows=[];fighters=[];mode=playMode;
+  scene.remove(world);world=new THREE.Group();scene.add(world);particles=[];glows=[];fighters=[];mode=playMode;cameraCenter=0;currentViewWidth=baseWidth;terrain=[];
+  backdrop=new THREE.Group();world.add(backdrop);
+  const tile=new THREE.Group();world.add(tile);tilePrototype=tile;
   const p=PALETTES[arena]||PALETTES.temple;arenaColor=p.accent;scene.fog.color.set(p.sky[0]);sun.color.setHex(p.accent);fill.color.setHex(arena==='grove'?0xa1ddff:0x76a2ff);
-  const sky=addMesh(world,new THREE.PlaneGeometry(110,58),new THREE.MeshBasicMaterial({map:skyTexture(p.sky),depthWrite:false}),0,13,-42);sky.castShadow=false;sky.receiveShadow=false;
+  const sky=addMesh(backdrop,new THREE.PlaneGeometry(110,58),new THREE.MeshBasicMaterial({map:skyTexture(p.sky),depthWrite:false}),0,13,-42);sky.castShadow=false;sky.receiveShadow=false;skyPlane=sky;
   for(let i=-5;i<=5;i++){
    const h=4+(Math.sin(i*4.93)+1)*1.5;const x=i*4.4;
-   const hill=cyl(world,mat(arena==='grove'?0x1b5358:0x2b2945),x,h*.27,-18,2.1,3.7,h,5);hill.rotation.y=.34;
+   const hill=cyl(tile,mat(arena==='grove'?0x1b5358:0x2b2945),x,h*.27,-18,2.1,3.7,h,5);hill.rotation.y=.34;
   }
-  const floor=box(world,mat(p.stone),0,-.45,0,20.5,.9,8.8);
-  box(world,M.ink,0,-.89,0,21,.18,9.2);
-  for(let x=-10;x<=10;x+=1){box(world,mat(arena==='city'?0x7c668e:0xb0a2a0),x,-.009,2.9,.05,.025,5.7)}
-  for(let x=-9;x<=9;x+=3){box(world,M.gold,x,-.015,3.7,.3,.025,.33)}
-  for(let x of [-10.3,10.3]){box(world,M.ink,x,.2,0,.3,1.1,8.5)}
+  const floor=box(tile,mat(p.stone),0,-.45,0,20.5,.9,8.8);
+  box(tile,M.ink,0,-.89,0,21,.18,9.2);
+  for(let x=-10;x<=10;x+=1){box(tile,mat(arena==='city'?0x7c668e:0xb0a2a0),x,-.009,2.9,.05,.025,5.7)}
+  for(let x=-9;x<=9;x+=3){box(tile,M.gold,x,-.015,3.7,.3,.025,.33)}
+  // No walls: the floor repeats endlessly as the camera follows the fighters.
   const sideColors=[0x5c3c59,0x444568,0x376c67];
   for(let side of [-1,1]){
    if(arena==='grove'){
-    for(let j=0;j<5;j++) bamboo(world,side*(6.6+j*.5),-5.5-j*.75,.72+j*.13);
-    torii(world,side*8,-12,.8,0x477e70);
+    for(let j=0;j<5;j++) bamboo(tile,side*(6.6+j*.5),-5.5-j*.75,.72+j*.13);
+    torii(tile,side*8,-12,.8,0x477e70);
    }else if(arena==='city'){
-    for(let j=0;j<6;j++){const xx=side*(6.3+j*1.45);const ht=3+(j%3)*1.2;box(world,mat(sideColors[j%3]),xx,ht*.5,-10,1.2,ht,1.35);
-      for(let yy=1;yy<ht;yy+=.75){box(world,mat(j%2?0x8a70d1:0xfd9dc5),xx,yy,-9.29,.58,.1,.03)}}
-    lantern(world,side*6.8,2.5,-4,0xfa79ec);
+    for(let j=0;j<6;j++){const xx=side*(6.3+j*1.45);const ht=3+(j%3)*1.2;box(tile,mat(sideColors[j%3]),xx,ht*.5,-10,1.2,ht,1.35);
+      for(let yy=1;yy<ht;yy+=.75){box(tile,mat(j%2?0x8a70d1:0xfd9dc5),xx,yy,-9.29,.58,.1,.03)}}
+    lantern(tile,side*6.8,2.5,-4,0xfa79ec);
    }else{
     const house=new THREE.Group();house.position.set(side*8,0,-8);world.add(house);
     box(house,mat(0x644459),0,1.55,0,3,3,2);roof(house,mat(p.roof),0,3.35,0,3.8);box(house,M.gold,0,1.7,1.03,1,.85,.13);
-    torii(world,side*5.1,-9,.7,0xb8494c);lantern(world,side*6.7,2.2,-3.4,0xffba77);
+    torii(tile,side*5.1,-9,.7,0xb8494c);lantern(tile,side*6.7,2.2,-3.4,0xffba77);
    }
   }
   if(mode==='platform'){
    const spots=[[-5.2,2.05,3.1],[0,3.05,3.45],[5.1,2.1,3.1]];
    for(const [x,y,w] of spots){
-    box(world,M.ink,x,y-.22,0,w,.35,3.2);
-    box(world,mat(arena==='grove'?0x8fc59e:p.accent),x,y-.02,0,w,.11,3.3);
-    for(let s of [-1,1]){box(world,M.gold,x+s*(w/2-.22),y-.1,1.5,.12,.31,.12)}
+    box(tile,M.ink,x,y-.22,0,w,.35,3.2);
+    box(tile,mat(arena==='grove'?0x8fc59e:p.accent),x,y-.02,0,w,.11,3.3);
+    for(let s of [-1,1]){box(tile,M.gold,x+s*(w/2-.22),y-.1,1.5,.12,.31,.12)}
    }
   }
+  terrain=[tile];
   for(let i=0;i<2;i++) fighters.push(makeFighter(styles[i],i));
   renderer.setClearColor(0x080b17);
  }
@@ -160,10 +164,26 @@ export function createGraphics(canvas){
    p.mesh.scale.setScalar(Math.max(.02,p.life/p.max));p.mesh.material.opacity=Math.max(0,p.life/p.max);
    if(p.life<=0){world.remove(p.mesh);p.mesh.geometry.dispose();p.mesh.material.dispose();particles.splice(j,1)}
   }
+  // Follow the combat rather than stopping the fighters at invisible walls.
+  const a=fighterStates[0],b=fighterStates[1];
+  const targetX=a&&b?(a.x+b.x)/2:0;
+  const separation=a&&b?Math.abs(a.x-b.x):0;
+  cameraCenter+=(targetX-cameraCenter)*Math.min(1,delta*4.5);
+  const desiredWidth=Math.max(baseWidth,separation+8);
+  currentViewWidth+=(desiredWidth-currentViewWidth)*Math.min(1,delta*5);
+  camera.left=-currentViewWidth/2;camera.right=currentViewWidth/2;
+  camera.top=currentViewWidth*screenRatio/2;camera.bottom=-camera.top;camera.updateProjectionMatrix();
+  const needed=Math.min(17,Math.max(5,Math.ceil(currentViewWidth/20)+3));
+  while(terrain.length<needed){const chunk=tilePrototype.clone(true);world.add(chunk);terrain.push(chunk)}
+  for(let i=0;i<terrain.length;i++){
+   const tileIndex=Math.floor(cameraCenter/20)+i-Math.floor(terrain.length/2);
+   terrain[i].position.x=tileIndex*20;
+  }
+  if(backdrop){backdrop.position.x=cameraCenter*.95;if(skyPlane)skyPlane.scale.x=Math.max(1,currentViewWidth/104)}
   camShake=Math.max(0,camShake-delta*8);
-  camera.position.x=Math.sin(now*.12)*camShake*.18;
+  camera.position.x=cameraCenter+Math.sin(now*.12)*camShake*.18;
   camera.position.y=5.4+Math.cos(now*.11)*camShake*.14;
-  camera.lookAt(0,2,0);
+  camera.lookAt(cameraCenter,2,0);
   renderer.render(scene,camera);
  }
  function impact(x,y,isSuper=false,parry=false){
@@ -180,8 +200,8 @@ export function createGraphics(canvas){
  }
  function resize(){
   const w=innerWidth,h=innerHeight;renderer.setSize(w,h,false);
-  const wide=Math.max(19,10.6*w/h);
-  camera.left=-wide/2;camera.right=wide/2;camera.top=wide*h/w/2;camera.bottom=-wide*h/w/2;camera.updateProjectionMatrix();
+  screenRatio=h/w;baseWidth=Math.max(19,10.6*w/h);currentViewWidth=Math.max(baseWidth,currentViewWidth);
+  camera.left=-currentViewWidth/2;camera.right=currentViewWidth/2;camera.top=currentViewWidth*screenRatio/2;camera.bottom=-camera.top;camera.updateProjectionMatrix();
  }
  resize();addEventListener('resize',resize);
  return {setStage,sync,impact,resize,renderer};
