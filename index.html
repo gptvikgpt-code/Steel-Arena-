@@ -3,7 +3,7 @@
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,maximum-scale=1,user-scalable=no">
 <meta name="theme-color" content="#10172a"><meta name="description" content="Steel Arena — оригинальный 3D-файтинг. Выбирай бойца, тренируйся с ботом или сражайся с другом онлайн в браузере.">
 <title>Steel Arena — 3D Fighting Online</title>
-<link rel="stylesheet" href="./styles.css?v=20261102garden">
+<link rel="stylesheet" href="./styles.css?v=20261102nick">
 <script defer src="https://unpkg.com/peerjs@1.5.5/dist/peerjs.min.js"></script>
 </head><body>
 <canvas id="scene" aria-label="Трёхмерная боевая арена"></canvas>
@@ -73,6 +73,8 @@
  <div class="options">
   <button class="option selected" data-pick="arena" data-value="garden"><b>🌿 ДОЛИНА ВОДОПАДОВ</b><small>Лабиринты, домики, водопады, цветы и препятствия</small></button>
  </div>
+ <div class="section-title">05 / ТВОЙ НИК</div>
+ <div class="bot-count-control"><label for="player-nick">🏷️ ИМЯ НАД ПЕРСОНАЖЕМ</label><input id="player-nick" type="text" maxlength="16" placeholder="Введи свой ник" autocomplete="nickname" style="width:100%;padding:10px;border-radius:8px;background:#10263c;color:white;border:1px solid #80caff"></div>
  <div class="section-title">05 / ПРОТИВНИКИ</div>
  <div class="bot-count-control"><label for="bot-count">🤖 КОЛИЧЕСТВО БОТОВ: <strong id="bot-count-value">1</strong></label><input id="bot-count" type="range" min="1" max="10" step="1" value="1"><small>От 1 до 10 ботов одновременно · только одиночный бой</small></div>
  <div class="section-title">06 / ИГРАТЬ</div>
