@@ -3,7 +3,7 @@
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,maximum-scale=1,user-scalable=no">
 <meta name="theme-color" content="#10172a"><meta name="description" content="Steel Arena — оригинальный 3D-файтинг. Выбирай бойца, тренируйся с ботом или сражайся с другом онлайн в браузере.">
 <title>Steel Arena — 3D Fighting Online</title>
-<link rel="stylesheet" href="./styles.css?v=20261102l">
+<link rel="stylesheet" href="./styles.css?v=20261102m">
 <script defer src="https://unpkg.com/peerjs@1.5.5/dist/peerjs.min.js"></script>
 </head><body>
 <canvas id="scene" aria-label="Трёхмерная боевая арена"></canvas>
@@ -20,13 +20,10 @@
 <div class="bottom-tip">A/D — в стороны · W/S — в глубину · Space — прыжок · B — блок · J — удар · K — сильный · Shift — рывок · L — техника · P — супер · F — стрелять</div>
 <div id="mobile-controls" aria-label="Сенсорное управление">
 <div class="touch-side touch-left">
- <button class="touch-btn mini" data-key="up" aria-label="В глубину">▲</button>
- <button class="touch-btn" data-key="left" aria-label="Влево">◀</button>
- <button class="touch-btn" data-key="right" aria-label="Вправо">▶</button>
- <button class="touch-btn mini" data-key="down" aria-label="К камере">▼</button>
- <div class="touch-stack"><button class="touch-btn mini" data-key="jump">↥<span style="font-size:0">Прыжок</span></button><button class="touch-btn mini" data-key="dash">РЫВОК</button></div>
+ <div id="move-joystick" class="move-joystick" role="application" aria-label="Джойстик передвижения"><div id="joystick-knob" class="joystick-knob"></div></div>
 </div>
-<div class="touch-side">
+<div class="touch-side touch-actions">
+ <div class="touch-stack"><button class="touch-btn mini" data-key="jump">ПРЫЖОК</button><button class="touch-btn mini" data-key="dash">РЫВОК</button></div>
  <div class="touch-stack"><button class="touch-btn mini" data-key="block">БЛОК</button><button class="touch-btn mini" data-key="special">ТЕХН.</button></div>
  <div class="touch-stack"><button class="touch-btn" data-key="light">УДАР</button><button class="touch-btn mini" data-key="super">СУПЕР</button></div>
  <button class="touch-btn mini" data-key="shoot">🔥 ОГОНЬ</button><button class="touch-btn" data-key="heavy">СИЛА</button>
