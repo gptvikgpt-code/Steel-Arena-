@@ -51,13 +51,43 @@ export function createGraphics(canvas){
   const ob=new THREE.Group();ob.position.set(x,0,z);ob.scale.setScalar(scale);g.add(ob);
   for(let j=0;j<3;j++){const xx=(j-1)*.38;cyl(ob,mat([0x4c8e73,0x6dba84,0x9bcf8f][j]),xx,2+j*.25,0,.075,.095,4+j*.6,7);for(let v=.9;v<4.3;v+=.72){cyl(ob,M.cream,xx,v,0,.09,.09,.034);for(const d of [-1,1]){let leaf=addMesh(ob,new THREE.ConeGeometry(.2,.85,5),mat(0x61ac80),xx+d*.18,v+.18,0);leaf.rotation.z=d*.95}}}
  }
+
+ function jungleTexture(){
+  const c=document.createElement('canvas');c.width=1024;c.height=576;const ctx=c.getContext('2d');
+  const sky=ctx.createLinearGradient(0,0,0,576);sky.addColorStop(0,'#092c27');sky.addColorStop(.43,'#367e69');sky.addColorStop(.8,'#b6cfa1');sky.addColorStop(1,'#1b4a38');ctx.fillStyle=sky;ctx.fillRect(0,0,1024,576);
+  const glow=ctx.createRadialGradient(610,155,5,610,155,320);glow.addColorStop(0,'#fff8c9cc');glow.addColorStop(.5,'#d3e6a755');glow.addColorStop(1,'#b0e3b000');ctx.fillStyle=glow;ctx.fillRect(0,0,1024,576);
+  let seed=173;const rnd=()=>{seed=(seed*1664525+1013904223)>>>0;return seed/4294967296};
+  for(let layer=0;layer<5;layer++){
+   const y=230+layer*65;ctx.fillStyle=['#386c60','#285f4e','#20523e','#174735','#0c322b'][layer];
+   for(let i=0;i<55;i++){const x=i*22+rnd()*28-30,h=35+rnd()*110+layer*10;ctx.fillRect(x,y-h,5+layer*2,h+120);
+    ctx.beginPath();ctx.ellipse(x,y-h,24+rnd()*40,23+rnd()*40,rnd()*.6,0,Math.PI*2);ctx.fill();}
+  }
+  for(let j=0;j<3;j++){
+   const x=210+j*340,y=310+j*35;ctx.fillStyle='#435e51';ctx.beginPath();ctx.moveTo(x-115,y);ctx.lineTo(x-70,y-115);ctx.lineTo(x+80,y-125);ctx.lineTo(x+120,y);ctx.fill();
+   const water=ctx.createLinearGradient(x-25,0,x+30,0);water.addColorStop(0,'#a8efe5');water.addColorStop(.5,'#e4ffff');water.addColorStop(1,'#379c9d');ctx.fillStyle=water;ctx.fillRect(x-25,y-5,55,260);
+  }
+  for(let i=0;i<95;i++){const x=rnd()*1024,y=420+rnd()*155;ctx.fillStyle=i%3?'#173e2c':'#4e8250';ctx.beginPath();ctx.ellipse(x,y,5+rnd()*25,6+rnd()*20,rnd()*3,0,Math.PI*2);ctx.fill();}
+  const t=new THREE.CanvasTexture(c);t.colorSpace=THREE.SRGBColorSpace;t.anisotropy=renderer.capabilities.getMaxAnisotropy();return t;
+ }
+ function jungleTree(g,x,z,scale){
+  const tree=new THREE.Group();tree.position.set(x,0,z);tree.scale.setScalar(scale);g.add(tree);
+  const bark=mat(0x574a34),leaf=mat(0x245b32),bright=mat(0x3f8846);
+  cyl(tree,bark,0,3,0,.3,.48,6,9);
+  for(let i=0;i<5;i++){
+   const angle=i*Math.PI*2/5,dx=Math.cos(angle)*1.45,dz=Math.sin(angle)*1.45;
+   const branch=cyl(tree,bark,dx*.52,5.1,dz*.52,.13,.22,2.5,7);branch.rotation.z=-Math.cos(angle)*.65;branch.rotation.x=Math.sin(angle)*.65;
+   const crown=addMesh(tree,new THREE.IcosahedronGeometry(1.65,1),i%2?leaf:bright,dx,6.1+(i%2)*.4,dz);crown.scale.set(1.15,.65,1.05);
+  }
+  const crown=addMesh(tree,new THREE.IcosahedronGeometry(1.9,1),leaf,0,7.15,0);crown.scale.y=.7;
+  for(let i=0;i<4;i++){const vine=cyl(tree,mat(0x3b7c39),Math.sin(i*2)*1.1,4.6,Math.cos(i*2)*1.1,.035,.05,2.4,5);vine.rotation.z=.13;}
+ }
  function setStage(arena,playMode,styles){
   scene.remove(world);world=new THREE.Group();scene.add(world);particles=[];glows=[];fighters=[];mode=playMode;cameraCenter=0;currentViewWidth=baseWidth;terrain=[];
   backdrop=new THREE.Group();world.add(backdrop);
   const tile=new THREE.Group();tilePrototype=tile;
-  const p=PALETTES[arena]||PALETTES.temple;arenaColor=p.accent;scene.fog.color.set(p.sky[0]);sun.color.setHex(p.accent);fill.color.setHex(arena==='grove'?0xa1ddff:0x76a2ff);
+  const p=PALETTES[arena]||PALETTES.temple;arenaColor=p.accent;scene.fog.density=arena==='grove'?.019:.013;scene.fog.color.set(p.sky[0]);sun.color.setHex(p.accent);fill.color.setHex(arena==='grove'?0xa1ddff:0x76a2ff);
   const sky=addMesh(backdrop,new THREE.PlaneGeometry(170,90),new THREE.MeshBasicMaterial({map:skyTexture(p.sky),depthWrite:false,side:THREE.DoubleSide}),0,17,-66);sky.castShadow=false;sky.receiveShadow=false;skyPlane=sky;sky.visible=false;
-  const artwork=new THREE.TextureLoader().load('./assets/steel-arena-backdrop.svg');artwork.colorSpace=THREE.SRGBColorSpace;
+  const artwork=arena==='grove'?jungleTexture():new THREE.TextureLoader().load('./assets/steel-arena-backdrop.svg');artwork.colorSpace=THREE.SRGBColorSpace;
   illustratedBackdrop=addMesh(backdrop,new THREE.PlaneGeometry(125,70),new THREE.MeshBasicMaterial({map:artwork,depthWrite:false,side:THREE.DoubleSide}),0,11,-37);
   illustratedBackdrop.castShadow=false;illustratedBackdrop.receiveShadow=false;
   for(let i=-5;i<=5;i++){
@@ -132,6 +162,7 @@ export function createGraphics(canvas){
   const sideColors=[0x5c3c59,0x444568,0x376c67];
   for(let side of [-1,1]){
    if(arena==='grove'){
+    for(let j=0;j<4;j++)jungleTree(tile,side*(5.7+j*1.7),-5.8-(j%2)*4,.8+(j%3)*.2);
     for(let j=0;j<5;j++) bamboo(tile,side*(6.6+j*.5),-5.5-j*.75,.72+j*.13);
     torii(tile,side*8,-12,.8,0x477e70);
    }else if(arena==='city'){
