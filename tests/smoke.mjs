@@ -109,9 +109,15 @@ try {
     const guestHp = Number.parseFloat(await guest.locator('#hp2').evaluate(el => el.style.width));
     assert.ok(hostHp < 100 && guestHp < 100, 'Both players must observe damage');
     assert.ok(Math.abs(hostHp - guestHp) <= 15, 'Guest health must follow authoritative host health');
+    if (errors.length) throw new Error('Browser errors during active match:\\n' + errors.join('\\n'));
     console.log(`${mode}: two clients connected, mobile input and synchronized damage verified`);
-    await host.locator('#back-menu').click();
-    await guest.locator('#back-menu').click();
+    // Close both peers together. PeerJS may emit a harmless buffered-send
+    // warning while the other side's RTCDataChannel is shutting down.
+    await Promise.all([host.locator('#back-menu').click(), guest.locator('#back-menu').click()]);
+    await host.waitForTimeout(350);
+    const teardownErrors = errors.filter(msg => !msg.includes('Error sending binary data through RTCDataChannel.'));
+    if (teardownErrors.length) throw new Error('Unexpected disconnect errors:\\n' + teardownErrors.join('\\n'));
+    errors.length = 0;
   }
   if (errors.length) throw new Error('Browser console errors:\n' + errors.join('\n'));
   console.log('Same-runner online browser smoke test passed (NOT a cross-network device certification).');
