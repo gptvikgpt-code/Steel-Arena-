@@ -1,5 +1,5 @@
 
-import {createGraphics} from './graphics.js?v=20261102teams';
+import {createGraphics} from './graphics.js?v=20261102namesfix';
 const $=id=>document.getElementById(id);
 const clamp=(v,min,max)=>Math.max(min,Math.min(max,v));
 const classes={
