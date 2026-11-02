@@ -3,7 +3,7 @@
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,maximum-scale=1,user-scalable=no">
 <meta name="theme-color" content="#10172a"><meta name="description" content="Steel Arena — оригинальный 3D-файтинг. Выбирай бойца, тренируйся с ботом или сражайся с другом онлайн в браузере.">
 <title>Steel Arena — 3D Fighting Online</title>
-<link rel="stylesheet" href="./styles.css">
+<link rel="stylesheet" href="./styles.css?v=20261102b">
 <script defer src="https://unpkg.com/peerjs@1.5.5/dist/peerjs.min.js"></script>
 </head><body>
 <canvas id="scene" aria-label="Трёхмерная боевая арена"></canvas>
@@ -31,7 +31,7 @@
 </div></div>
 <div id="menu" class="menu">
 <div class="menu-panel">
-<header><div><div class="eyebrow">ORIGINAL 3D ARENA FIGHTER • BROWSER EDITION</div><h1 class="brand">⚔ STEEL ARENA</h1></div><p class="subtitle">Два режима боя. Шесть героев. Победа за два раунда. Android • iPhone • PC</p></header>
+<header><div><div class="eyebrow">ORIGINAL 3D ARENA FIGHTER • BROWSER EDITION</div><h1 class="brand">⚔ STEEL ARENA</h1></div><p class="subtitle">Бесконечный ринг, 6 героев и 6 видов оружия. Android • iPhone • PC</p></header>
 <div class="config-layout">
 <section>
  <div class="section-title">01 / ВЫБЕРИ СВОЕГО БОЙЦА</div>
@@ -43,21 +43,31 @@
   <button class="pick" data-pick="hero" data-value="brute"><span class="portrait">🔥</span><b>ТИТАН</b><small>Сила • захват</small></button>
   <button class="pick" data-pick="hero" data-value="lancer"><span class="portrait">🔱</span><b>КОПЕЙЩИК</b><small>Дальность • выпад</small></button>
  </div>
+ <div class="section-title">02 / ВЫБЕРИ ОРУЖИЕ</div>
+ <div class="weapons" id="weapon-list">
+  <button class="option weapon-pick selected" data-pick="weapon" data-value="sword"><b>⚔️ МЕЧ</b><small>Баланс</small></button>
+  <button class="option weapon-pick" data-pick="weapon" data-value="axe"><b>🪓 ТОПОР</b><small>Урон ↑</small></button>
+  <button class="option weapon-pick" data-pick="weapon" data-value="spear"><b>🔱 КОПЬЁ</b><small>Дальность ↑</small></button>
+  <button class="option weapon-pick" data-pick="weapon" data-value="staff"><b>🪄 ПОСОХ</b><small>Универсал</small></button>
+  <button class="option weapon-pick" data-pick="weapon" data-value="daggers"><b>🗡️ КИНЖАЛЫ</b><small>Скорость ↑</small></button>
+  <button class="option weapon-pick" data-pick="weapon" data-value="hammer"><b>🔨 МОЛОТ</b><small>Сила ↑</small></button>
+ </div>
  <div class="feature">⚡ <strong>В бою:</strong> лёгкий и сильный удары, щит и парирование, рывок, двойной прыжок у Тени, особая техника и суперудар за энергию.</div>
 </section>
 <section>
- <div class="section-title">02 / РЕЖИМ</div>
+ <div class="section-title">03 / РЕЖИМ АРЕНЫ</div>
  <div class="options">
-  <button class="option selected" data-pick="mode" data-value="duel"><b>⚔️ ДУЭЛЬ</b><small>Классический бой 1×1</small></button>
-  <button class="option" data-pick="mode" data-value="platform"><b>🪽 ПЛАТФОРМЫ</b><small>Прыжки и уровни</small></button>
+  <button class="option selected" data-pick="mode" data-value="endless"><b>♾️ БЕСКОНЕЧНЫЙ РИНГ</b><small>Без стен и таймера</small></button>
+  <button class="option" data-pick="mode" data-value="duel"><b>⚔️ ДУЭЛЬ</b><small>Бой на время</small></button>
+  <button class="option" data-pick="mode" data-value="platform"><b>🪽 ПЛАТФОРМЫ</b><small>Прыжки и ярусы</small></button>
  </div>
- <div class="section-title">03 / АРЕНА</div>
+ <div class="section-title">04 / ДЕКОРАЦИИ</div>
  <div class="options">
   <button class="option selected" data-pick="arena" data-value="temple"><b>⛩️ ХРАМ</b><small>Закат и фонари</small></button>
   <button class="option" data-pick="arena" data-value="grove"><b>🎋 РОЩА</b><small>Нефрит и бамбук</small></button>
   <button class="option" data-pick="arena" data-value="city"><b>🌃 ГОРОД</b><small>Неоновые крыши</small></button>
  </div>
- <div class="section-title">04 / ИГРАТЬ</div>
+ <div class="section-title">05 / ИГРАТЬ</div>
  <div class="actions">
   <button class="play-btn" id="start-bot">▶ БОЙ С БОТОМ</button>
   <button class="alt-btn" id="create-room">🌐 СОЗДАТЬ ОНЛАЙН</button>
@@ -80,5 +90,5 @@
   <div class="actions"><button class="play-btn" id="play-again">↻ ЕЩЁ РАЗ</button><button class="alt-btn" id="menu-return">В МЕНЮ</button></div>
  </div>
 </div>
-<script type="module" src="./game.js"></script>
+<script type="module" src="./game.js?v=20261102b"></script>
 </body></html>
