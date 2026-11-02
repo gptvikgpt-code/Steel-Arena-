@@ -1,5 +1,5 @@
 
-import {createGraphics} from './graphics.js?v=20261102n';
+import {createGraphics} from './graphics.js?v=20261102o';
 const $=id=>document.getElementById(id);
 const clamp=(v,min,max)=>Math.max(min,Math.min(max,v));
 const classes={
@@ -23,11 +23,12 @@ const equipped=id=>weapons[id]||weapons.sword;
 const gfx=createGraphics($('scene'));
 const controls=['left','right','up','down','jump','light','heavy','block','dash','special','super','shoot'];
 const input=Object.fromEntries(controls.map(x=>[x,false]));
+let joystickAxis={x:0,y:0};let gamepadActive=false;
 let role='menu',peer=null,connection=null,remoteInput={},networkTick=0;
 const botLearning={shots:0,attacks:0,blocks:0,frames:0};
 let choice='ronin',weaponChoice='sword',arena='temple',mode='endless',players=[],match=null,lastFx=0,noticeDeadline=0,worldTime=0;
 const MAX_ROUND_TIME=90;
-const copyState=()=>Object.fromEntries(controls.map(k=>[k,!!input[k]]));
+const copyState=()=>({...Object.fromEntries(controls.map(k=>[k,!!input[k]])),axisX:joystickAxis.x,axisY:joystickAxis.y});
 const names={left:'A / ←',right:'D / →',up:'↑',down:'↓',jump:'Space',light:'J',heavy:'K',block:'B',dash:'Shift',special:'L',super:'P',shoot:'F'};
 function previewStyles(){return [{...classes[choice],weapon:weaponChoice},{...classes.knight,weapon:'hammer'}]}
 function select(which,value){
@@ -183,9 +184,9 @@ function fighterStep(f,enemy,inp,dt){
  if(canMove){
   if(inp.dash&&f.dashCool<=0&&!f.block){f.dashCool=1.05;f.dashTimer=.15;f.vx=(inp.left?-1:inp.right?1:f.dir)*runSpeed*2.45}
   if(f.dashTimer>0){f.dashTimer-=dt}else{
-   const axis=(inp.right?1:0)-(inp.left?1:0);
+   const axis=typeof inp.axisX==='number'?inp.axisX:(inp.right?1:0)-(inp.left?1:0);
    f.vx=axis*runSpeed*(f.block?.3:f.attack?.4:1);
-   const depthAxis=(inp.down?1:0)-(inp.up?1:0);
+   const depthAxis=typeof inp.axisY==='number'?inp.axisY:(inp.down?1:0)-(inp.up?1:0);
    f.vz=depthAxis*runSpeed*(f.block?.3:f.attack?.4:1)*.85;
   }
   const jumpNow=!!inp.jump&&!f.prevJump;f.prevJump=!!inp.jump;
@@ -272,8 +273,21 @@ function updateHUD(){
 function send(obj){
  if(connection&&connection.open)try{connection.send(obj)}catch(err){console.warn('send failed',err)}
 }
+function pollGamepad(){
+ const pads=navigator.getGamepads?.()||[];const pad=Array.from(pads).find(p=>p&&p.connected);
+ if(!pad){if(gamepadActive){gamepadActive=false;joystickAxis={x:0,y:0};for(const k of controls)input[k]=false;}return;}
+ gamepadActive=true;
+ const dead=v=>Math.abs(v)<.16?0:Math.sign(v)*(Math.abs(v)-.16)/.84;
+ joystickAxis={x:dead(pad.axes[0]||0),y:dead(pad.axes[1]||0)};
+ const pressed=n=>!!pad.buttons[n]?.pressed;
+ input.left=joystickAxis.x<-.15||pressed(14);input.right=joystickAxis.x>.15||pressed(15);
+ input.up=joystickAxis.y<-.15||pressed(12);input.down=joystickAxis.y>.15||pressed(13);
+ input.jump=pressed(0);input.light=pressed(2);input.heavy=pressed(3);input.block=pressed(1);
+ input.dash=pressed(4);input.special=pressed(5);input.shoot=pressed(7);input.super=pressed(6);
+}
 function liveFrame(ms){
  const dt=Math.min(.045,Math.max(0,(ms-(liveFrame.previous||ms))/1000));liveFrame.previous=ms;worldTime+=dt;
+ pollGamepad();
  if(role==='solo'||role==='host'){
   logic(dt);if(match)updateHUD();
   if(role==='host'&&match){networkTick+=dt;if(networkTick>.055){networkTick=0;send({t:'state',players,match})}}
@@ -365,13 +379,15 @@ function joinRoom(){
 function bindTouch(){
  const pad=$('move-joystick'),knob=$('joystick-knob');
  let activeStick=null;
- const clearStick=()=>{activeStick=null;knob.style.transform='translate3d(0px,0px,0)';for(const k of ['left','right','up','down'])input[k]=false;};
+ const clearStick=()=>{activeStick=null;joystickAxis={x:0,y:0};pad.classList.remove('engaged');knob.style.transform='translate3d(0px,0px,0)';for(const k of ['left','right','up','down'])input[k]=false;};
  const updateStick=(x,y)=>{
   const r=pad.getBoundingClientRect(),radius=Math.max(20,r.width*.34);
   let dx=x-r.left-r.width/2,dy=y-r.top-r.height/2;
   const magnitude=Math.hypot(dx,dy);if(magnitude>radius){dx*=radius/magnitude;dy*=radius/magnitude;}
   knob.style.transform='translate3d('+dx+'px,'+dy+'px,0)';
   const dead=radius*.18;
+  joystickAxis={x:Math.abs(dx)<dead?0:dx/radius,y:Math.abs(dy)<dead?0:dy/radius};
+  pad.classList.add('engaged');
   input.left=dx < -dead;input.right=dx > dead;
   input.up=dy < -dead;input.down=dy > dead;
  };
