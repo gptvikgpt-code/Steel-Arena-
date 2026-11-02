@@ -40,7 +40,8 @@ export function createGraphics(canvas){
  const rim=new THREE.DirectionalLight(0x9edbff,2.3);rim.position.set(3,8,-5);scene.add(rim);
  let world=new THREE.Group();scene.add(world);let fighters=[],particles=[],glows=[],arenaColor=0xffac65,mode='duel',camShake=0,blur=0;
  let terrain=[],tilePrototype=null,backdrop=null,skyPlane=null,illustratedBackdrop=null,shotMeshes=[],cameraCenter=0,baseWidth=36,screenRatio=1,currentViewWidth=36;
- let tiltTarget={x:0,y:0},tiltNow={x:0,y:0},firstPerson=false;
+ let tiltTarget={x:0,y:0},tiltNow={x:0,y:0},firstPerson=false,aimYaw=Math.PI/2,aimPitch=-.12;
+ function setAim(yaw,pitch){aimYaw=yaw;aimPitch=THREE.MathUtils.clamp(pitch,-1.1,.8);}
  let poopMarkers=new Map();
  function setFirstPerson(enabled){firstPerson=!!enabled;camera.fov=firstPerson?82:48;camera.updateProjectionMatrix();}
  function setCameraTilt(x=0,y=0){tiltTarget.x=THREE.MathUtils.clamp(x,-1,1);tiltTarget.y=THREE.MathUtils.clamp(y,-1,1)}
@@ -439,11 +440,8 @@ export function createGraphics(canvas){
   camera.lookAt(cameraCenter+tiltNow.x*1.3,1.55,(a?.z??0)*.5+(b?.z??0)*.5+tiltNow.y*.9);
   camera.rotation.z=Math.sin(t*.8)*.012;
   if(firstPerson&&a){
-   const dx=a.facingX??a.dir??1,dz=a.facingZ??0,mag=Math.hypot(dx,dz)||1;
-   const fx=dx/mag,fz=dz/mag;
-   // Eye-level camera looks forward and slightly down so the arena floor remains visible.
-   const eye=new THREE.Vector3(a.x,a.y+1.72,a.z||0);
-   const direction=new THREE.Vector3(fx,tiltNow.y*.18-.27,fz).normalize();
+   const eye=new THREE.Vector3(a.x,a.y+1.72+(a.grounded?Math.sin(now*.011)*Math.min(.035,Math.hypot(a.vx||0,a.vz||0)*.006):0),a.z||0);
+   const direction=new THREE.Vector3(Math.sin(aimYaw)*Math.cos(aimPitch),Math.sin(aimPitch)+tiltNow.y*.12,Math.cos(aimYaw)*Math.cos(aimPitch)).normalize();
    camera.position.copy(eye);
    camera.up.set(0,1,0);
    camera.lookAt(eye.clone().addScaledVector(direction,15));
@@ -469,5 +467,5 @@ export function createGraphics(canvas){
   camera.aspect=w/h;camera.updateProjectionMatrix();
  }
  resize();addEventListener('resize',resize);
- return {setStage,sync,impact,resize,renderer,setCameraTilt,setFirstPerson};
+ return {setStage,sync,impact,resize,renderer,setCameraTilt,setFirstPerson,setAim};
 }
