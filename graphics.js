@@ -97,166 +97,84 @@ export function createGraphics(canvas){
   for(let i=0;i<4;i++){const vine=cyl(tree,mat(0x3b7c39),Math.sin(i*2)*1.1,4.6,Math.cos(i*2)*1.1,.035,.05,2.4,5);vine.rotation.z=.13;}
  }
  function setStage(arena,playMode,styles){
-  scene.remove(world);world=new THREE.Group();scene.add(world);particles=[];glows=[];fighters=[];mode=playMode;cameraCenter=0;currentViewWidth=baseWidth;terrain=[];shotMeshes=[];poopMarkers=new Map();
+  scene.remove(world);world=new THREE.Group();scene.add(world);
+  particles=[];glows=[];fighters=[];mode=playMode;cameraCenter=0;currentViewWidth=baseWidth;terrain=[];shotMeshes=[];poopMarkers=new Map();
   backdrop=new THREE.Group();world.add(backdrop);
   const tile=new THREE.Group();tilePrototype=tile;
-  const p=PALETTES[arena]||PALETTES.temple;arenaColor=p.accent;scene.fog.density=arena==='grove'?.019:.013;scene.fog.color.set(p.sky[0]);sun.color.setHex(p.accent);fill.color.setHex(arena==='grove'?0xa1ddff:0x76a2ff);
-  const sky=addMesh(backdrop,new THREE.PlaneGeometry(170,90),new THREE.MeshBasicMaterial({map:skyTexture(p.sky),depthWrite:false,side:THREE.DoubleSide}),0,17,-66);sky.castShadow=false;sky.receiveShadow=false;skyPlane=sky;sky.visible=false;
-  const artwork=['grove','desert','glacier','volcano','space'].includes(arena)?skyTexture(p.sky):new THREE.TextureLoader().load('./assets/steel-arena-backdrop.svg');artwork.colorSpace=THREE.SRGBColorSpace;
-  illustratedBackdrop=addMesh(backdrop,new THREE.PlaneGeometry(125,70),new THREE.MeshBasicMaterial({map:artwork,depthWrite:false,side:THREE.DoubleSide}),0,11,-37);
-  illustratedBackdrop.castShadow=false;illustratedBackdrop.receiveShadow=false;
-  for(let i=-5;i<=5;i++){
-   if(illustratedBackdrop)break;
-   const h=4+(Math.sin(i*4.93)+1)*1.5;const x=i*4.4;
-   const hill=cyl(tile,mat(arena==='grove'?0x1b5358:0x2b2945),x,h*.27,-18,2.1,3.7,h,5);hill.rotation.y=.34;
+  const grass=mat(0x67b96a),grassLight=mat(0x8ad179),stone=mat(0x8e9486),wall=mat(0xb6a989),wood=mat(0x9c633e),roofMat=mat(0xc85e4f),leaf=mat(0x3c955a),flowerYellow=mat(0xffdf5a),flowerPink=mat(0xff76ad);
+  arenaColor=0x9ad6a2;scene.fog.density=.007;scene.fog.color.setHex(0xa8e1f5);sun.color.setHex(0xffe5aa);fill.color.setHex(0x9edaff);
+  const sky=addMesh(backdrop,new THREE.PlaneGeometry(210,115),new THREE.MeshBasicMaterial({map:skyTexture(['#71b9e8','#b8e8e5','#e9f6c1']),depthWrite:false,side:THREE.DoubleSide}),0,20,-80);
+  sky.castShadow=false;sky.receiveShadow=false;skyPlane=sky;sky.visible=false;
+  illustratedBackdrop=sky;
+  box(tile,grass,0,-.5,0,20.5,1,70);
+  // Garden paths, stone stepping tiles, meadows and colourful flowers.
+  for(let z=-30;z<=30;z+=3)for(let x=-9;x<=9;x+=3){
+   const n=Math.abs(Math.sin(x*13.3+z*9.7));
+   if(n>.67){const patch=box(tile,grassLight,x,.035,z,1.6,.05,1.5);patch.rotation.y=n*.4;}
+   if(n>.35)for(let k=0;k<3;k++){
+    const fx=x+Math.sin(n*11+k*2)*.8,fz=z+Math.cos(n*13+k*2)*.8;
+    cyl(tile,mat(0x3d9454),fx,.18,fz,.035,.04,.36,5);
+    const petal=ball(tile,k%2?flowerPink:flowerYellow,fx,.42,fz,.16,7);petal.scale.y=.6;
+   }
   }
-  const floor=box(tile,mat(p.stone),0,-.45,0,20.5,.9,70);
-  // Retro-action bridge details: crates, steel bands, warning barrels and banners.
+  for(let z=-30;z<=30;z+=2.6){
+   box(tile,stone,0,.035,z,3.1,.09,2.3);
+   if(z%2<1)for(let x of [-1.2,1.2])box(tile,wall,x,.105,z,.13,.07,2.1);
+  }
+  // Wide walkable maze with low stone hedges, breaks, side routes and courtyards.
+  const mazeWalls=[
+   [-7,-19,1.1,11],[-3.5,-15,7,.9],[5,-19,1.1,12],
+   [-7,1,1.1,13],[-3,5,6,.9],[7,0,1.1,14],
+   [-5,20,1.1,10],[4,19,1.1,10],[-1,25,8,.9],
+   [-5,-1,5,.9],[4,-8,5,.9]
+  ];
+  for(const [x,z,w,d] of mazeWalls){
+   box(tile,wall,x,.72,z,w,1.4,d);
+   box(tile,stone,x,1.48,z,w+.16,.17,d+.16);
+   for(const side of [-1,1])if(w>3){
+    const bush=ball(tile,leaf,x+side*(w*.36),1.7,z,.55,9);bush.scale.y=.65;
+   }
+  }
+  // Three small cottages with doors, windows, chimneys and sloping roofs.
+  for(const [hx,hz,turn] of [[-7,-9,0],[7,13,Math.PI],[-7,13,0]]){
+   const house=new THREE.Group();house.position.set(hx,0,hz);house.rotation.y=turn;tile.add(house);
+   box(house,mat(0xf5d9aa),0,1.35,0,3.3,2.7,3);
+   const top=addMesh(house,new THREE.ConeGeometry(2.65,1.8,4),roofMat,0,3.4,0);top.rotation.y=Math.PI/4;top.scale.z=.95;
+   box(house,wood,0,.85,1.54,.85,1.7,.1);
+   box(house,mat(0x8be6ed),-1,1.65,1.55,.65,.75,.08);
+   box(house,mat(0x8be6ed),1,1.65,1.55,.65,.75,.08);
+   box(house,stone,1.05,3.65,-.6,.55,1.3,.55);
+  }
+  // Waterfall cliffs and rivers flank the battlefield, visible in first person.
+  const water=new THREE.MeshStandardMaterial({color:0x39a6d9,roughness:.17,metalness:.12,transparent:true,opacity:.82,emissive:0x075273,emissiveIntensity:.18});
+  const foam=new THREE.MeshBasicMaterial({color:0xc9faff,transparent:true,opacity:.8,depthWrite:false});
   for(const side of [-1,1]){
-   for(let j=0;j<3;j++){
-    const xx=side*(5.9+j*1.15),zz=5.5+(j%2)*1.2;
-    box(tile,mat(0x805135),xx,.43,zz,.87,.85,.85);
-    box(tile,M.ink,xx,.42,zz+.445,.84,.09,.045);
-    box(tile,M.gold,xx,.42,zz-.445,.84,.08,.045);
-   }
-   const bx=side*8.2;
-   cyl(tile,mat(0xc92f30),bx,.58,3.1,.4,.4,1.12,10);
-   box(tile,M.ink,bx,.86,3.51,.65,.16,.05);
-   box(tile,M.gold,bx,.48,3.52,.5,.11,.06);
-   const flag=box(tile,mat(0x9f2638),side*7.5,2.6,-6.5,1.15,1.75,.08);
-   flag.rotation.z=side*.09;
-   box(tile,M.cream,side*7.5,2.65,-6.44,.38,.38,.06);
-  }
-  const paving=mat(arena==='city'?0x756781:arena==='grove'?0x617f78:0x988487);
-  for(let row=-17;row<=17;row+=2)for(let col=-9;col<=9;col+=2){
-   const slab=box(tile,paving,col*1.08+(row%2)*.38,.027,row*1.9,2.05,.065,3.55);
-   slab.rotation.y=((row+col)%3-1)*.018;
-  }
-  for(let i=0;i<12;i++){
-   const z=-7.7+(i%4)*4.9,x=-8.6+Math.floor(i/4)*8.4;
-   const crack=box(tile,M.ink,x,.07,z,1.1,.018,.035);crack.rotation.y=i*.74;crack.castShadow=false;
-  }
-  // Stone paving provides strong perspective lines; no debug grid.
-  box(tile,M.ink,0,-.89,0,21,.18,70.4);
-  for(const z of [-27,27]){
-   for(let j=-4;j<=4;j++){
-    const x=j*2.45;
-    const plinth=box(tile,mat(p.stone),x,.55,z,.85,1.1,.85);
-    const column=cyl(tile,mat(arena==='grove'?0x56887a:0x82748a),x,2.1,z,.32,.43,2.4,10);
-    box(tile,M.gold,x,3.34,z,.92,.17,.92);
-    if(j===0){
-     const flame=addMesh(tile,new THREE.ConeGeometry(.22,.72,9),new THREE.MeshBasicMaterial({color:0xffb86e}),x,3.82,z);
-     flame.castShadow=false;
-     const light=new THREE.PointLight(p.accent,3.5,7,2);light.position.set(x,3.6,z);tile.add(light);
-    }
+   for(let z=-28;z<=28;z+=8){
+    const x=side*10;
+    box(tile,mat(0x667c66),x,2.1,z,2.2,4.2,7.5);
+    box(tile,grassLight,x,4.24,z,2.6,.35,7.7);
+    box(tile,water,side*8.95,2.1,z,.16,4.1,3.2);
+    for(let k=0;k<4;k++)box(tile,foam,side*8.85,.12,z-1.1+k*.7,.2,.12,.38);
+    const pool=box(tile,water,side*8.2,.045,z,1.35,.055,4.3);pool.castShadow=false;
    }
   }
-  for(let j=0;j<3;j++){
-   const x=-9+j*8.2;
-   const island=new THREE.Group();island.position.set(x,7+(j%2)*2,-27-j*3);tile.add(island);
-   const rock=addMesh(island,new THREE.DodecahedronGeometry(2.5,1),mat(arena==='grove'?0x365c58:0x60506d));rock.scale.set(1.4,.48,1.1);
-   const underside=addMesh(island,new THREE.ConeGeometry(1.9,3.6,7),mat(0x302a40),0,-2.2,0);underside.rotation.z=Math.PI;
-   for(let k=0;k<3;k++){const cloud=ball(island,new THREE.MeshBasicMaterial({color:0xe4bad2,transparent:true,opacity:.22,depthWrite:false}),-2+k*1.8,-2.8,-1.5,.95,12);cloud.castShadow=false;}
+  // Trees, bushes, rocks, barrels and crates scattered without blocking the spawn.
+  for(let j=0;j<24;j++){
+   const side=j%2?-1:1,x=side*(5.5+(j%4)*.7),z=-30+j*2.6;
+   cyl(tile,wood,x,1.05,z,.23,.3,2.1,7);
+   const crown=ball(tile,leaf,x,2.55,z,1.05,10);crown.scale.y=1.25;
+   if(j%3===0){const rock=addMesh(tile,new THREE.DodecahedronGeometry(.65,0),stone,x-side*1.25,.35,z);rock.scale.y=.65;}
   }
-  // Layered foreground and background geometry makes the arena read as a deep 3D space.
-  for(let j=0;j<9;j++){
-   const x=-9+j*2.3, depth=-10-(j%3)*3.8;
-   const rock=addMesh(tile,new THREE.DodecahedronGeometry(.65+(j%3)*.28,0),mat(arena==='grove'?0x365b62:0x50435e),x,.05,depth);
-   rock.scale.set(1.35,.6,1.1);rock.rotation.y=j*.63;
-   const pillar=cyl(tile,mat(p.stone),x,1.2,depth-1.6,.25,.36,2.4,8);
-   pillar.rotation.z=(j%2?1:-1)*.08;
+  for(let j=0;j<14;j++){
+   const x=(j%2?-1:1)*(3.9+(j%3)*1.05),z=-26+j*4;
+   if(Math.abs(z)<5)continue;
+   if(j%2){box(tile,wood,x,.43,z,.8,.85,.8);box(tile,stone,x,.87,z,.82,.08,.82);}
+   else cyl(tile,mat(0xc54843),x,.55,z,.4,.4,1.1,10);
   }
-  for(let j=0;j<12;j++){
-   const x=-9+j*1.7;
-   const pebble=addMesh(tile,new THREE.IcosahedronGeometry(.13+(j%3)*.045,0),mat(j%2?0xa9a0ae:0x6c697d),x,.045,3.8+(j%3)*.85);
-   pebble.scale.set(1.6,.36,.9);pebble.castShadow=false;
-  }
-  for(let x=-10;x<=10;x+=1){box(tile,mat(arena==='city'?0x7c668e:0xb0a2a0),x,-.009,2.9,.05,.025,5.7)}
-  for(let x=-9;x<=9;x+=3){box(tile,M.gold,x,-.015,3.7,.3,.025,.33)}
-  // Four distinct biome maps. Geometry repeats with terrain chunks.
-  if(arena==='desert'){
-   for(let j=0;j<16;j++){const x=-9+(j%8)*2.5,z=-24+Math.floor(j/8)*47;
-    const dune=addMesh(tile,new THREE.ConeGeometry(1.5+(j%3)*.5,1.2,7),mat(j%2?0xe8bd7b:0xd8a66a),x,.4,z);dune.scale.set(1.5,.5,1.1);
-    if(j%4===0){cyl(tile,mat(0x8b674f),x,1.3,z,.5,.65,2.6,8);box(tile,M.gold,x,2.7,z,1.7,.22,1.7);}
-   }
-  }else if(arena==='glacier'){
-   for(let j=0;j<18;j++){const x=-9+(j%9)*2.2,z=j<9?-23:23;
-    const ice=addMesh(tile,new THREE.ConeGeometry(.6+(j%4)*.2,2+(j%3),5),new THREE.MeshStandardMaterial({color:j%2?0x8be7fa:0xb9f5ff,transparent:true,opacity:.83,roughness:.18,metalness:.12}),x,1.2,z);ice.rotation.z=(j%3-1)*.13;
-   }
-  }else if(arena==='volcano'){
-   for(let j=0;j<18;j++){const x=-9+(j%9)*2.2,z=j<9?-23:23;
-    const rock=addMesh(tile,new THREE.DodecahedronGeometry(.8+(j%3)*.4,0),mat(0x27252c),x,.3,z);rock.scale.y=.55;
-    const lava=box(tile,new THREE.MeshBasicMaterial({color:0xff5422}),x,-.005,z+1.1,1.4,.025,.16);lava.rotation.y=j*.7;
-   }
-  }else if(arena==='space'){
-   for(let j=0;j<18;j++){const x=-9+(j%9)*2.2,z=j<9?-23:23;
-    cyl(tile,mat(0x8398ba),x,.7,z,.7,.9,1.4,8);
-    const glow=addMesh(tile,new THREE.TorusGeometry(.53,.075,6,16),new THREE.MeshBasicMaterial({color:0x57dfff}),x,1.5,z);glow.rotation.x=Math.PI/2;
-   }
-   for(let z=-28;z<=28;z+=4)box(tile,new THREE.MeshBasicMaterial({color:0x4e9ae3}),0,.025,z,19,.02,.055);
-  }
-  // No walls: the floor repeats endlessly as the camera follows the fighters.
-  const sideColors=[0x5c3c59,0x444568,0x376c67];
-  for(let side of [-1,1]){
-   if(arena==='grove'){
-    for(let j=0;j<4;j++)jungleTree(tile,side*(5.7+j*1.7),-5.8-(j%2)*4,.8+(j%3)*.2);
-    for(let j=0;j<5;j++) bamboo(tile,side*(6.6+j*.5),-5.5-j*.75,.72+j*.13);
-    torii(tile,side*8,-12,.8,0x477e70);
-   }else if(arena==='cavern'){
-    for(let j=0;j<7;j++){const xx=side*(5+j*1.5);const crystal=addMesh(tile,new THREE.ConeGeometry(.35+j%3*.18,1.5+j%3,6),new THREE.MeshStandardMaterial({color:0x9474ee,emissive:0x5b3bd5,emissiveIntensity:.8}),xx,.8,-8-j%3);crystal.rotation.z=side*.25;}
-   }else if(arena==='citadel'){
-    for(let j=0;j<5;j++){const xx=side*(5.5+j*1.65);cyl(tile,mat(0xb5a99e),xx,2.2,-9,.38,.52,4.4,12);box(tile,mat(0xc8b8a1),xx,4.5,-9,1.1,.28,1.1);}
-   }else if(arena==='city'){
-    for(let j=0;j<6;j++){const xx=side*(6.3+j*1.45);const ht=3+(j%3)*1.2;box(tile,mat(sideColors[j%3]),xx,ht*.5,-10,1.2,ht,1.35);
-      for(let yy=1;yy<ht;yy+=.75){box(tile,mat(j%2?0x8a70d1:0xfd9dc5),xx,yy,-9.29,.58,.1,.03)}}
-    lantern(tile,side*6.8,2.5,-4,0xfa79ec);
-   }else{
-    const house=new THREE.Group();house.position.set(side*8,0,-8);tile.add(house);
-    box(house,mat(0x644459),0,1.55,0,3,3,2);roof(house,mat(p.roof),0,3.35,0,3.8);box(house,M.gold,0,1.7,1.03,1,.85,.13);
-    torii(tile,side*5.1,-9,.7,0xb8494c);lantern(tile,side*6.7,2.2,-3.4,0xffba77);
-   }
-  }
-  // Distinct environmental landmarks for the four new biomes.
-  if(arena==='desert'){
-   const sand=mat(0xd5a76a),ancient=mat(0x8d664a);
-   for(let side of [-1,1])for(let j=0;j<4;j++){
-    const x=side*(3.2+j*2.05),z=-15-j*3.2;
-    const base=box(tile,sand,x,.48,z,2.1,.95,2.1);
-    const top=addMesh(tile,new THREE.ConeGeometry(1.6,3.8,4),sand,x,2.8,z);top.rotation.y=Math.PI/4;
-    box(tile,ancient,x,.12,z+2,1.6,.25,.55);
-   }
-  }else if(arena==='glacier'){
-   const ice=new THREE.MeshStandardMaterial({color:0x91e7f5,roughness:.23,metalness:.22,transparent:true,opacity:.87});
-   for(let side of [-1,1])for(let j=0;j<9;j++){
-    const x=side*(3.8+j*.92),z=-13-(j%4)*3.8;
-    const spike=addMesh(tile,new THREE.ConeGeometry(.5+(j%3)*.2,2.3+(j%4)*1.1,5),ice,x,1.4+(j%4)*.5,z);spike.rotation.z=side*.18;
-   }
-  }else if(arena==='volcano'){
-   const lava=new THREE.MeshBasicMaterial({color:0xff4b16});
-   for(let side of [-1,1])for(let j=0;j<6;j++){
-    const x=side*(4+j*1.2),z=-15-(j%3)*4;
-    const rock=addMesh(tile,new THREE.DodecahedronGeometry(1.15+(j%3)*.35,0),mat(0x29252d),x,.65,z);rock.scale.y=.8;
-    const fissure=box(tile,lava,x,.07,z+1.5,1.1,.035,.17);fissure.rotation.y=j*.7;
-   }
-  }else if(arena==='space'){
-   const neon=new THREE.MeshBasicMaterial({color:0x31cfff});
-   for(let j=-8;j<=8;j++){
-    box(tile,neon,j*1.15,.035,-12,.055,.06,34);
-    if(j%4===0){const tower=box(tile,mat(0x344e83),j*1.15,2.2,-22,1.1,4.4,1.1);box(tile,neon,j*1.15,4.45,-22,1.3,.16,1.3)}
-   }
-   for(let z=-25;z<=25;z+=5)box(tile,neon,0,.042,z,19,.035,.055);
-  }
-  if(mode==='platform'){
-   const spots=[[-5.2,2.05,3.1],[0,3.05,3.45],[5.1,2.1,3.1]];
-   for(const [x,y,w] of spots){
-    box(tile,M.ink,x,y-.22,0,w,.35,3.2);
-    box(tile,mat(arena==='grove'?0x8fc59e:p.accent),x,y-.02,0,w,.11,3.3);
-    for(let s of [-1,1]){box(tile,M.gold,x+s*(w/2-.22),y-.1,1.5,.12,.31,.12)}
-   }
-  }
+  // No raised platform tiles: the entire environment is traversable at ground level.
   terrain=[tile];
-  for(let i=0;i<2;i++) fighters.push(makeFighter(styles[i],i));
-  renderer.setClearColor(0x080b17);
+  for(let i=0;i<2;i++)fighters.push(makeFighter(styles[i],i));
+  renderer.setClearColor(0x9ad7ec);
  }
  function makeFighter(style,number){
   const g=new THREE.Group();world.add(g);const skin=mat(style.skin||0xf0c09d),primary=mat(style.color),secondary=mat(style.trim),metal=mat(style.metal||0xb0baca);
