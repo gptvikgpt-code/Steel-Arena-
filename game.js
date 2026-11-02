@@ -29,7 +29,7 @@ for(const b of document.querySelectorAll('[data-pick]')){
  b.addEventListener('click',()=>select(b.dataset.pick,b.dataset.value));
 }
 function freshFighter(id,style,x,dir){
- return {id,style,x,y:0,vx:0,vy:0,dir,hp:100,chi:0,grounded:true,jumps:0,block:false,parry:0,
+ return {id,style,x,y:0,vx:0,vy:0,dir,hp:100,chi:0,grounded:true,jumps:0,prevJump:false,block:false,parry:0,
  hitstun:0,invuln:0,dashTimer:0,dashCool:0,attack:null,attackCool:0,specialCool:0,superCool:0,combo:0,comboClock:0,prevBlock:false};
 }
 function announce(text,seconds=1.2){const el=$('announce');el.textContent=text;el.classList.add('visible');noticeDeadline=performance.now()+seconds*1000;}
@@ -43,7 +43,7 @@ function enterFight(){
 function newMatch(p1=choice,p2='knight'){
  players=[freshFighter(0,p1,-3.5,1),freshFighter(1,p2,3.5,-1)];
  match={phase:'intro',delay:1.65,round:1,time:MAX_ROUND_TIME,scores:[0,0],winner:null,event:null,eventId:0};
- enterFight();updateHUD();announce('ПРИГОТОВИТЬСЯ',1.3);
+ lastFx=0;enterFight();updateHUD();announce('ПРИГОТОВИТЬСЯ',1.3);
 }
 function nextRound(){
  const s1=players[0].style,s2=players[1].style;
@@ -149,8 +149,9 @@ function fighterStep(f,enemy,inp,dt){
    const axis=(inp.right?1:0)-(inp.left?1:0);
    f.vx=axis*style.speed*(f.block?.3:f.attack?.4:1);
   }
-  if(inp.jump&&(f.grounded||(f.style==='ninja'&&f.jumps<2))){
-   f.vy=mode==='platform'?9.3:8.4;f.grounded=false;f.jumps++;
+  const jumpNow=!!inp.jump&&!f.prevJump;f.prevJump=!!inp.jump;
+  if(jumpNow&&(f.grounded||(f.style==='ninja'&&f.jumps<2))){
+   f.vy=mode==='platform'?12.2:8.4;f.grounded=false;f.jumps++;
   }
   if(!f.block){
    if(inp.super)performAttack(f,'super');
