@@ -1,5 +1,5 @@
 
-import {createGraphics} from './graphics.js?v=20261102r';
+import {createGraphics} from './graphics.js?v=20261102s';
 const $=id=>document.getElementById(id);
 const clamp=(v,min,max)=>Math.max(min,Math.min(max,v));
 const classes={
@@ -28,6 +28,9 @@ let role='menu',peer=null,connection=null,remoteInput={},networkTick=0;
 const botLearning={shots:0,attacks:0,blocks:0,frames:0};
 let choice='ronin',weaponChoice='sword',arena='temple',mode='endless',players=[],match=null,lastFx=0,noticeDeadline=0,worldTime=0;
 const MAX_ROUND_TIME=90;
+let botCount=1;
+$('bot-count').addEventListener('input',e=>{botCount=clamp(Number(e.target.value)||1,1,10);$('bot-count-value').textContent=String(botCount)});
+const botRoster=()=>Array.from({length:botCount},(_,i)=>{const ids=['knight','ninja','brute','lancer','mage','ronin'];const type=ids[i%ids.length];const angle=i*Math.PI*2/botCount;const f=freshFighter(i+1,type,Math.cos(angle)*Math.max(5,botCount*1.15),-1,defaultWeapons[type]);f.z=Math.sin(angle)*Math.max(4,botCount*.7);return f;});
 const copyState=()=>({...Object.fromEntries(controls.map(k=>[k,!!input[k]])),axisX:joystickAxis.x,axisY:joystickAxis.y});
 const names={left:'A / ←',right:'D / →',up:'↑',down:'↓',jump:'Space',light:'J',heavy:'K',block:'B',dash:'Shift',special:'L',super:'P',shoot:'F'};
 function previewStyles(){return [{...classes[choice],weapon:weaponChoice},{...classes.knight,weapon:'hammer'}]}
@@ -48,21 +51,21 @@ function freshFighter(id,style,x,dir,weapon=id===0?weaponChoice:(defaultWeapons[
 }
 function announce(text,seconds=1.2){const el=$('announce');el.textContent=text;el.classList.add('visible');noticeDeadline=performance.now()+seconds*1000;}
 function flash(intensity=.3){const f=$('flash');f.style.opacity=String(intensity);setTimeout(()=>f.style.opacity='0',80)}
-function currentStyles(){return [0,1].map(i=>({...classes[players[i]?.style]||classes.ronin,weapon:players[i]?.weapon||'sword'}))}
+function currentStyles(){return players.map(p=>({...classes[p?.style]||classes.ronin,weapon:p?.weapon||'sword'}))}
 function enterFight(){
  $('menu').classList.add('hidden');$('result-screen').classList.add('hidden');document.body.classList.add('fight');
  $('hint').textContent=role==='solo'?'ТРЕНИРОВКА ПРОТИВ БОТА':role==='host'?'ОНЛАЙН • ВЫ ХОЗЯИН КОМНАТЫ':'ОНЛАЙН • ВЫ ГОСТЬ';
  gfx.setStage(arena,mode,currentStyles());
 }
 function newMatch(p1=choice,p2='knight',w1=weaponChoice,w2=defaultWeapons[p2]||'sword'){
- players=[freshFighter(0,p1,-3.5,1,w1),freshFighter(1,p2,3.5,-1,w2)];
+ players=role==='solo'?[freshFighter(0,p1,0,1,w1),...botRoster()]:[freshFighter(0,p1,-3.5,1,w1),freshFighter(1,p2,3.5,-1,w2)];
  match={phase:'intro',delay:1.65,round:1,time:MAX_ROUND_TIME,scores:[0,0],winner:null,event:null,eventId:0};
  lastFx=0;enterFight();updateHUD();announce('ПРИГОТОВИТЬСЯ',1.3);
 }
 function nextRound(){
  const s1=players[0].style,s2=players[1].style;
  const w1=players[0].weapon,w2=players[1].weapon;
- players=[freshFighter(0,s1,-3.5,1,w1),freshFighter(1,s2,3.5,-1,w2)];
+ players=role==='solo'?[freshFighter(0,s1,0,1,w1),...botRoster()]:[freshFighter(0,s1,-3.5,1,w1),freshFighter(1,s2,3.5,-1,w2)];
  match.round++;match.time=MAX_ROUND_TIME;match.phase='intro';match.delay=1.4;
  announce('РАУНД '+match.round,1.1);
 }
@@ -175,7 +178,9 @@ function fighterStep(f,enemy,inp,dt){
  f.superCool=Math.max(0,f.superCool-dt);f.dashCool=Math.max(0,f.dashCool-dt);f.shotCool=Math.max(0,(f.shotCool||0)-dt);
  f.comboClock=Math.max(0,f.comboClock-dt);
  if(f.comboClock<=0)f.combo=0;
- f.dir=enemy.x>=f.x?1:-1;
+ if(Math.abs(f.vx)>.2||Math.abs(f.vz||0)>.2){const mag=Math.hypot(f.vx,f.vz||0);f.facingX=f.vx/mag;f.facingZ=(f.vz||0)/mag;}
+ else if(f.facingX===undefined){f.facingX=f.dir;f.facingZ=0;}
+ f.dir=(f.facingX||0)<-.15?-1:(f.facingX||0)>.15?1:f.dir;
  // Attack direction and facing remain consistent while circling in 3D.
  const canMove=f.hitstun<=0;
  if(inp.block&&!f.prevBlock){f.parry=.16}
@@ -243,30 +248,57 @@ function logic(dt){
  if(match.phase!=='fight')return;
  const a=players[0],b=players[1],ctrl1=copyState();
  if(role==='solo'){botLearning.frames++;botLearning.shots+=ctrl1.shoot?1:0;botLearning.attacks+=ctrl1.light||ctrl1.heavy?1:0;botLearning.blocks+=ctrl1.block?1:0;}
- const ctrl2=role==='solo'?botControl(b,a,dt):remoteInput;
- fighterStep(a,b,ctrl1,dt);fighterStep(b,a,ctrl2||{},dt);
- for(const [shooter,target] of [[a,b],[b,a]]){
-  if(shooter.shotId&&shooter.shotId!==shooter.lastShotId){shooter.lastShotId=shooter.shotId;shooter.projectiles=shooter.projectiles||[];shooter.projectiles.push({x:shooter.x,z:shooter.z,y:shooter.y+1.4,dir:shooter.dir,life:1.35});}
-  for(const p of shooter.projectiles||[]){p.x+=p.dir*13*dt;p.life-=dt;
-   if(p.life>0&&Math.abs(p.x-target.x)<.7&&Math.abs(p.z-target.z)<1.15&&Math.abs(p.y-(target.y+1.4))<1.4){p.life=0;const blocked=target.block&&target.dir===-p.dir;const dmg=blocked?2:role==='solo'&&shooter.id===1?4:8;target.hp=clamp(target.hp-dmg,0,100);target.hitstun=blocked?.08:.17;target.chi=clamp(target.chi+4,0,100);gfx.impact(target.x,target.y+1,false,blocked);}
+ if(role==='solo'){
+  const aliveBots=players.slice(1).filter(p=>p.hp>0);
+  if(a.hp>0)fighterStep(a,aliveBots[0]||b,ctrl1,dt);
+  for(const bot of aliveBots)fighterStep(bot,a,botControl(bot,a,dt),dt);
+ }else{fighterStep(a,b,ctrl1,dt);fighterStep(b,a,remoteInput||{},dt);}
+ for(const shooter of players){
+  if(shooter.hp<=0)continue;
+  if(shooter.shotId&&shooter.shotId!==shooter.lastShotId){
+   shooter.lastShotId=shooter.shotId;shooter.projectiles=shooter.projectiles||[];
+   const vx=shooter.facingX??shooter.dir,vz=shooter.facingZ??0;
+   const mag=Math.hypot(vx,vz)||1;
+   shooter.projectiles.push({x:shooter.x+vx/mag*.65,z:shooter.z+vz/mag*.65,y:shooter.y+1.4,vx:vx/mag*13,vz:vz/mag*13,life:1.6});
+  }
+  for(const p of shooter.projectiles||[]){
+   p.x+=p.vx*dt;p.z+=p.vz*dt;p.life-=dt;
+   if(p.life<=0)continue;
+   const targets=role==='solo'?(shooter.id===0?players.slice(1):[a]):players.filter(t=>t!==shooter);
+   for(const target of targets){
+    if(target.hp<=0)continue;
+    if(Math.hypot(p.x-target.x,p.z-target.z)<.95&&Math.abs(p.y-(target.y+1.4))<1.4){
+     p.life=0;const blocked=target.block&&target.dir===-(Math.sign(p.vx)||shooter.dir);
+     const dmg=blocked?2:role==='solo'&&shooter.id!==0?4:8;
+     target.hp=clamp(target.hp-dmg,0,100);target.hitstun=blocked?.08:.17;
+     target.chi=clamp(target.chi+4,0,100);gfx.impact(target.x,target.y+1,false,blocked);break;
+    }
+   }
   }
   shooter.projectiles=(shooter.projectiles||[]).filter(p=>p.life>0);
  }
- handleAttack(a,b);handleAttack(b,a);
+ if(role==='solo'){
+  for(const attacker of players){if(attacker.hp<=0)continue;
+   const targets=attacker.id===0?players.slice(1):[a];
+   for(const defender of targets){if(defender.hp>0)handleAttack(attacker,defender);}
+  }
+ }else{handleAttack(a,b);handleAttack(b,a);}
  if(mode!=='endless')match.time=Math.max(0,match.time-dt);
- if(a.hp<=0||b.hp<=0||(mode!=='endless'&&match.time<=0)){
-  let win=a.hp===b.hp?(Math.random()<.5?0:1):(a.hp>b.hp?0:1);
-  endRound(win);
+ if(role==='solo'){
+  const remaining=players.slice(1).filter(p=>p.hp>0).length;
+  if(a.hp<=0||remaining===0||(mode!=='endless'&&match.time<=0))endRound(a.hp>0&&remaining===0?0:1);
+ }else if(a.hp<=0||b.hp<=0||(mode!=='endless'&&match.time<=0)){
+  const win=a.hp===b.hp?(Math.random()<.5?0:1):(a.hp>b.hp?0:1);endRound(win);
  }
 }
 function updateHUD(){
  if(!match||players.length<2)return;
  $('name1').textContent=(classes[players[0].style]?.name||'БОЕЦ 1')+' • '+equipped(players[0].weapon).name;
- $('name2').textContent=(classes[players[1].style]?.name||'БОЕЦ 2')+' • '+equipped(players[1].weapon).name;
+ $('name2').textContent=role==='solo'?('БОТЫ • ОСТАЛОСЬ '+players.slice(1).filter(p=>p.hp>0).length+' / '+(players.length-1)):(classes[players[1].style]?.name||'БОЕЦ 2')+' • '+equipped(players[1].weapon).name;
  $('hp1').style.width=clamp(players[0].hp,0,100)+'%';
- $('hp2').style.width=clamp(players[1].hp,0,100)+'%';
+ $('hp2').style.width=(role==='solo'?players.slice(1).reduce((sum,p)=>sum+p.hp,0)/(players.length-1):clamp(players[1].hp,0,100))+'%';
  $('chi1').style.width=clamp(players[0].chi,0,100)+'%';
- $('chi2').style.width=clamp(players[1].chi,0,100)+'%';
+ $('chi2').style.width=(role==='solo'?0:clamp(players[1].chi,0,100))+'%';
  $('time').textContent=mode==='endless'?'∞':String(Math.ceil(match.time)).padStart(2,'0');
  $('rounds').textContent=match.scores.map(x=>'●'.repeat(x)+'○'.repeat(2-x)).join('  ·  ');
 }
