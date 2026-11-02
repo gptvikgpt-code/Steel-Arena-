@@ -29,7 +29,7 @@ export function createGraphics(canvas){
  const fill=new THREE.DirectionalLight(0x6caeff,1.45);fill.position.set(8,6,-10);scene.add(fill);
  const rim=new THREE.DirectionalLight(0x9edbff,2.3);rim.position.set(3,8,-5);scene.add(rim);
  let world=new THREE.Group();scene.add(world);let fighters=[],particles=[],glows=[],arenaColor=0xffac65,mode='duel',camShake=0,blur=0;
- let terrain=[],tilePrototype=null,backdrop=null,skyPlane=null,cameraCenter=0,baseWidth=19,screenRatio=1,currentViewWidth=19;
+ let terrain=[],tilePrototype=null,backdrop=null,skyPlane=null,illustratedBackdrop=null,cameraCenter=0,baseWidth=19,screenRatio=1,currentViewWidth=19;
  function skyTexture(colors){
   const c=document.createElement('canvas');c.width=512;c.height=256;const ctx=c.getContext('2d');
   const grd=ctx.createLinearGradient(0,0,0,256);colors.forEach((color,i)=>grd.addColorStop(i/(colors.length-1),color));ctx.fillStyle=grd;ctx.fillRect(0,0,512,256);
@@ -56,8 +56,12 @@ export function createGraphics(canvas){
   backdrop=new THREE.Group();world.add(backdrop);
   const tile=new THREE.Group();tilePrototype=tile;
   const p=PALETTES[arena]||PALETTES.temple;arenaColor=p.accent;scene.fog.color.set(p.sky[0]);sun.color.setHex(p.accent);fill.color.setHex(arena==='grove'?0xa1ddff:0x76a2ff);
-  const sky=addMesh(backdrop,new THREE.PlaneGeometry(170,90),new THREE.MeshBasicMaterial({map:skyTexture(p.sky),depthWrite:false,side:THREE.DoubleSide}),0,17,-66);sky.castShadow=false;sky.receiveShadow=false;skyPlane=sky;
+  const sky=addMesh(backdrop,new THREE.PlaneGeometry(170,90),new THREE.MeshBasicMaterial({map:skyTexture(p.sky),depthWrite:false,side:THREE.DoubleSide}),0,17,-66);sky.castShadow=false;sky.receiveShadow=false;skyPlane=sky;sky.visible=false;
+  const artwork=new THREE.TextureLoader().load('./assets/steel-arena-backdrop.svg');artwork.colorSpace=THREE.SRGBColorSpace;
+  illustratedBackdrop=addMesh(backdrop,new THREE.PlaneGeometry(125,70),new THREE.MeshBasicMaterial({map:artwork,depthWrite:false,side:THREE.DoubleSide}),0,11,-37);
+  illustratedBackdrop.castShadow=false;illustratedBackdrop.receiveShadow=false;
   for(let i=-5;i<=5;i++){
+   if(illustratedBackdrop)break;
    const h=4+(Math.sin(i*4.93)+1)*1.5;const x=i*4.4;
    const hill=cyl(tile,mat(arena==='grove'?0x1b5358:0x2b2945),x,h*.27,-18,2.1,3.7,h,5);hill.rotation.y=.34;
   }
@@ -285,7 +289,7 @@ export function createGraphics(canvas){
    const tileIndex=Math.floor(cameraCenter/20)+i-Math.floor(terrain.length/2);
    terrain[i].position.x=tileIndex*20;
   }
-  if(backdrop){backdrop.position.x=cameraCenter*.95;if(skyPlane)skyPlane.scale.x=Math.max(1,currentViewWidth/104)}
+  if(backdrop){backdrop.position.x=cameraCenter*.88;if(skyPlane)skyPlane.scale.x=Math.max(1,currentViewWidth/104);if(illustratedBackdrop)illustratedBackdrop.scale.x=Math.max(1,currentViewWidth/60)}
   camShake=Math.max(0,camShake-delta*8);
   // Floating cinematic camera: orbit, dolly, vertical drift and true 3D parallax.
   const t=now*.00023;
