@@ -1,5 +1,5 @@
 
-import {createGraphics} from './graphics.js?v=20261102o';
+import {createGraphics} from './graphics.js?v=20261102p';
 const $=id=>document.getElementById(id);
 const clamp=(v,min,max)=>Math.max(min,Math.min(max,v));
 const classes={
@@ -285,6 +285,26 @@ function pollGamepad(){
  input.jump=pressed(0);input.light=pressed(2);input.heavy=pressed(3);input.block=pressed(1);
  input.dash=pressed(4);input.special=pressed(5);input.shoot=pressed(7);input.super=pressed(6);
 }
+let tiltEnabled=false,tiltOrigin=null;
+const tiltButton=$('tilt-camera');
+const onOrientation=e=>{
+ if(!tiltEnabled||e.gamma==null||e.beta==null)return;
+ if(!tiltOrigin)tiltOrigin={gamma:e.gamma,beta:e.beta};
+ const x=clamp((e.gamma-tiltOrigin.gamma)/27,-1,1);
+ const y=clamp((e.beta-tiltOrigin.beta)/27,-1,1);
+ gfx.setCameraTilt(x,y);
+};
+window.addEventListener('deviceorientation',onOrientation);
+tiltButton.addEventListener('click',async()=>{
+ if(tiltEnabled){tiltEnabled=false;tiltOrigin=null;gfx.setCameraTilt(0,0);tiltButton.textContent='📱 КАМЕРА: ВЫКЛ';tiltButton.setAttribute('aria-pressed','false');return;}
+ try{
+  if(typeof DeviceOrientationEvent!=='undefined'&&typeof DeviceOrientationEvent.requestPermission==='function'){
+   const permission=await DeviceOrientationEvent.requestPermission();if(permission!=='granted')throw Error('Нет разрешения на датчики');
+  }
+  if(!('DeviceOrientationEvent' in window))throw Error('Датчик ориентации недоступен');
+  tiltEnabled=true;tiltOrigin=null;tiltButton.textContent='📱 КАМЕРА: ВКЛ';tiltButton.setAttribute('aria-pressed','true');
+ }catch(err){tiltButton.textContent='⚠ ДАТЧИК НЕДОСТУПЕН';console.warn(err);}
+});
 function liveFrame(ms){
  const dt=Math.min(.045,Math.max(0,(ms-(liveFrame.previous||ms))/1000));liveFrame.previous=ms;worldTime+=dt;
  pollGamepad();
