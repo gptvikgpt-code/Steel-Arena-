@@ -1,5 +1,5 @@
 
-import {createGraphics} from './graphics.js?v=20261102namesfix';
+import {createGraphics} from './graphics.js?v=20261103jump';
 const $=id=>document.getElementById(id);
 const clamp=(v,min,max)=>Math.max(min,Math.min(max,v));
 const classes={
@@ -216,7 +216,7 @@ function fighterStep(f,enemy,inp,dt){
   }
   const jumpNow=!!inp.jump&&!f.prevJump;f.prevJump=!!inp.jump;
   if(jumpNow&&(f.grounded||(f.style==='ninja'&&f.jumps<2))){
-   f.vy=mode==='platform'?12.2:8.4;f.grounded=false;f.jumps++;
+   f.vy=10.6;f.grounded=false;f.jumps++;
   }
   if(!f.block){
    if(inp.shoot&&f.shotCool<=0&&!f.attack){f.shotCool=.75;f.shotId=(f.shotId||0)+1;f.shotTime=.4;}
@@ -232,20 +232,16 @@ function fighterStep(f,enemy,inp,dt){
  for(const [x,z] of [[-7,-9],[7,13],[-7,13]])obstacles.push({x,z,halfX:1.65,halfZ:1.5,height:3});
  for(let j=0;j<14;j++){const x=(j%2?-1:1)*(3.9+(j%3)*1.05),z=-26+j*4;if(Math.abs(z)<5)continue;obstacles.push({x,z,halfX:.43,halfZ:.43,height:.9});}
  const oldX=f.x,oldZ=f.z||0;
+ const predictedY=Math.max(0,f.y+f.vy*dt-23*dt*dt);
  f.x+=f.vx*dt;f.z=(f.z||0)+(f.vz||0)*dt;
  if(Math.hypot(f.vx||0,f.vz||0)>.2&&!(firstPerson&&f.id===0)){const len=Math.hypot(f.vx,f.vz);f.facingX=f.vx/len;f.facingZ=f.vz/len;f.dir=f.facingX<-.15?-1:f.facingX>.15?1:f.dir;}
- const collide=(x,z)=>obstacles.some(o=>Math.abs(x-o.x)<o.halfX+.33&&Math.abs(z-o.z)<o.halfZ+.33&&f.y<o.height-.12);
+ const collide=(x,z)=>obstacles.some(o=>Math.abs(x-o.x)<o.halfX+.33&&Math.abs(z-o.z)<o.halfZ+.33&&predictedY<o.height-.12);
  if(collide(f.x,f.z)){if(!collide(f.x,oldZ))f.z=oldZ;else if(!collide(oldX,f.z))f.x=oldX;else{f.x=oldX;f.z=oldZ;}}
  f.x=clamp(f.x,-8.5,8.5);f.z=clamp(f.z,-32,32);
  f.shotTime=Math.max(0,(f.shotTime||0)-dt);
  const oldY=f.y;f.vy-=23*dt;f.y+=f.vy*dt;f.grounded=false;
  let landing=0;
  if(f.vy<=0)for(const prop of props){if(Math.abs(f.x-prop.x)<prop.half+.22&&Math.abs(f.z-prop.z)<prop.half+.22&&oldY>=prop.height-.16&&f.y<=prop.height)landing=Math.max(landing,prop.height);}
- if(mode==='platform'&&f.vy<=0){
-  const platforms=[[-5.2,2.05,1.54],[0,3.05,1.72],[5.1,2.1,1.54]];
-  const chunk=Math.round(f.x/20);
-  for(let index=chunk-1;index<=chunk+1;index++)for(const [px,py,pw]of platforms){if(Math.abs(f.x-(px+index*20))<pw&&Math.abs(f.z)<3.1&&oldY>=py-.1&&f.y<=py)landing=Math.max(landing,py)}
- }
  if(f.y<=landing&&f.vy<=0){f.y=landing;f.vy=0;f.grounded=true;f.jumps=0}
  if(f.attack){
   f.attack.remaining-=dt;
