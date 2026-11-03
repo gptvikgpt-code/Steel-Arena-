@@ -44,7 +44,7 @@ try {
       assert.ok(match, 'Cannot find the six-character room code generator');
       source = source.replace(match[0], `function makeCode(){return '${code}';}`);
     }
-    source += '\nwindow.__arenaCross = () => ({role, mode, arena, phase:match?.phase, fighters:players.map(p=>({x:p.x,z:p.z,hp:p.hp})), local:copyState(), remote:remoteInput});\n';
+    source += '\nwindow.__arenaCross = () => ({role, mode, arena, phase:match?.phase, fighters:players.map(p=>({x:p.x,z:p.z,hp:p.hp})), local:copyState(), remote:remoteInput, peerOpen:!!peer?.open, peerDisconnected:!!peer?.disconnected, dataChannelOpen:!!connection?.open, ice:connection?.peerConnection?{state:connection.peerConnection.connectionState, ice:connection.peerConnection.iceConnectionState, gathering:connection.peerConnection.iceGatheringState, signaling:connection.peerConnection.signalingState}:null});\n';
     await route.fulfill({ response, body: source, contentType: 'text/javascript' });
   });
   await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 45000 });
