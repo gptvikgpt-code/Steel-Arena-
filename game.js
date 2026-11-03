@@ -394,10 +394,22 @@ function makeCode(){
  const buf=new Uint8Array(6);crypto.getRandomValues(buf);
  return [...buf].map(v=>'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'[v%32]).join('');
 }
-function usePeer(){
+// STUN can establish direct WebRTC paths on some mobile networks. It is not
+// a replacement for a TURN relay when either network uses restrictive NAT.
+const ICE_SERVERS=[
+ {urls:'stun:stun.l.google.com:19302'},
+ {urls:'stun:stun1.l.google.com:19302'},
+ {urls:'stun:stun.cloudflare.com:3478'}
+];
+function usePeer(id){
  if(typeof window.Peer!=='function'){setNet('Не удалось загрузить сетевой модуль. Проверь интернет и блокировщик рекламы.');return null}
- const p=new window.Peer(undefined,{debug:0});
- return p;
+ return new window.Peer(id,{debug:0,config:{iceServers:ICE_SERVERS}});
+}
+function networkErrorText(e){
+ const detail=String(e?.message||e?.type||'неизвестная ошибка');
+ if(/negotiat|ice|connection failed/i.test(detail))return 'Прямое соединение между сетями не установилось (WebRTC/NAT). Попробуйте другую сеть. Для надёжной связи нужен TURN-сервер.';
+ if(/peer-unavailable/i.test(detail))return 'Комната с таким кодом не найдена. Проверь код и попроси друга создать новую комнату.';
+ return 'Ошибка связи: '+detail;
 }
 function setHandlers(c,isHost){
  connection=c;
@@ -449,29 +461,31 @@ function setHandlers(c,isHost){
   setNet('Связь с другим игроком потеряна.');
   if(role!=='menu'&&match)announce('СОЕДИНЕНИЕ ПОТЕРЯНО',4);
  });
- c.on('error',e=>setNet('Ошибка связи: '+(e?.message||'неизвестная')));
+ c.on('error',e=>setNet(networkErrorText(e)));
 }
 function createRoom(){
  shutdown();role='host';const code=makeCode();$('room-block').classList.remove('hidden');$('room-code').textContent=code;
  setNet('Создаём комнату…');$('invite-link').value=location.origin+location.pathname+'?join='+code;
  if(typeof window.Peer!=='function'){setNet('Сетевой модуль недоступен. Обнови страницу.');role='menu';return}
- peer=new window.Peer('steel-arena-'+code.toLowerCase(),{debug:0});
+ peer=usePeer('steel-arena-'+code.toLowerCase());
+ if(!peer){role='menu';return}
  peer.on('open',()=>setNet('Комната создана. Передай код другу и ожидай подключение.'));
  peer.on('connection',c=>{if(connection?.open){c.close();return}setHandlers(c,true)});
- peer.on('error',e=>setNet('Ошибка создания комнаты: '+(e.type||e.message)+'. Попробуй ещё раз.'));
+ peer.on('error',e=>setNet(networkErrorText(e)));
 }
 function joinRoom(){
  const code=$('join-code').value.toUpperCase().replace(/[^A-Z2-9]/g,'').slice(0,6);
  if(code.length!==6){$('room-block').classList.remove('hidden');setNet('Введи 6 символов кода комнаты.');return}
  shutdown();role='guest';$('room-block').classList.remove('hidden');setNet('Подключаемся к '+code+'…');
  if(typeof window.Peer!=='function'){setNet('Сетевой модуль недоступен.');role='menu';return}
- peer=new window.Peer(undefined,{debug:0});
+ peer=usePeer();
+ if(!peer){role='menu';return}
  peer.on('open',()=>{
   const c=peer.connect('steel-arena-'+code.toLowerCase(),{reliable:true,serialization:'json'});
   setHandlers(c,false);
-  setTimeout(()=>{if(role==='guest'&&!match&&!c.open)setNet('Друг не отвечает. Проверь код или сеть.')},9000);
+  setTimeout(()=>{if(role==='guest'&&!match&&!c.open&&$('net-status').textContent.startsWith('Подключаемся'))setNet('Друг не отвечает. Проверь код или сеть.')},9000);
  });
- peer.on('error',e=>setNet('Ошибка соединения: '+(e.type||e.message)));
+ peer.on('error',e=>setNet(networkErrorText(e)));
 }
 function bindTouch(){
  const pad=$('move-joystick'),knob=$('joystick-knob');
