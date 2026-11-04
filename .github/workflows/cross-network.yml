@@ -13,8 +13,9 @@ jobs:
     timeout-minutes: 15
     strategy:
       fail-fast: false
-      # Avoid simultaneous signaling negotiations from four fresh peers.
-      max-parallel: 2
+      # Both host and guest must be eligible to start concurrently for each mode.
+      # A limit of two can schedule two hosts first, leaving no guest to connect.
+      max-parallel: 4
       matrix:
         include:
           - { role: host, mode: duel, os: ubuntu-latest, browser: chromium }
