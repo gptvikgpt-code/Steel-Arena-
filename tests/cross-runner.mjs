@@ -11,10 +11,10 @@ const role = process.env.ARENA_TEST_ROLE;
 const mode = process.env.ARENA_TEST_MODE;
 assert.ok(['host', 'guest'].includes(role), 'ARENA_TEST_ROLE must be host or guest');
 assert.ok(['duel', 'platform'].includes(mode), 'ARENA_TEST_MODE must be duel or platform');
-const alphabet = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+const alphabet = '0123456789';
 const seed = `${process.env.GITHUB_RUN_ID || 'local'}:${process.env.GITHUB_RUN_ATTEMPT || '1'}:${mode}`;
 const code = [...createHash('sha256').update(seed).digest().subarray(0, 6)]
-  .map(b => alphabet[b % alphabet.length]).join('');
+  .map(b => alphabet[b % 10]).join('');
 const url = 'https://gptvikgpt-code.github.io/Steel-Arena-/';
 const engine = role === 'host' ? chromium : webkit;
 const browser = await engine.launch({ headless: true, ...(role === 'host' ? { args: ['--use-gl=angle', '--use-angle=swiftshader'] } : {}) });
@@ -41,7 +41,7 @@ try {
     let source = await response.text();
     if (role === 'host') {
       const match = source.match(/function makeCode\(\)\{[\s\S]*?\n\}/);
-      assert.ok(match, 'Cannot find the six-character room code generator');
+      assert.ok(match, 'Cannot find the six-digit room code generator');
       source = source.replace(match[0], `function makeCode(){return '${code}';}`);
     }
     source += '\nwindow.__arenaCross = () => ({role, mode, arena, phase:match?.phase, fighters:players.map(p=>({x:p.x,z:p.z,hp:p.hp})), local:copyState(), remote:remoteInput, peerOpen:!!peer?.open, peerDisconnected:!!peer?.disconnected, dataChannelOpen:!!connection?.open, ice:connection?.peerConnection?{state:connection.peerConnection.connectionState, ice:connection.peerConnection.iceConnectionState, gathering:connection.peerConnection.iceGatheringState, signaling:connection.peerConnection.signalingState}:null});\n';
