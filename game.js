@@ -388,7 +388,7 @@ function setNet(s){$('net-status').textContent=s}
 function launchBot(){shutdown();botCount=clamp(parseInt($('bot-count').value,10)||1,1,10);$('bot-count-value').textContent=String(botCount);role='solo';newMatch(choice,'knight');$('hint').textContent='ВЫЖИВАНИЕ • УНИЧТОЖЬ ВСЕХ '+botCount+' БОТОВ';}
 function makeCode(){
  const buf=new Uint8Array(6);crypto.getRandomValues(buf);
- return [...buf].map(v=>'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'[v%32]).join('');
+ return [...buf].map(v=>String(v%10)).join('');
 }
 // STUN can establish direct WebRTC paths on some mobile networks. It is not
 // a replacement for a TURN relay when either network uses restrictive NAT.
@@ -470,8 +470,8 @@ function createRoom(){
  peer.on('error',e=>setNet(networkErrorText(e)));
 }
 function joinRoom(){
- const code=$('join-code').value.toUpperCase().replace(/[^A-Z2-9]/g,'').slice(0,6);
- if(code.length!==6){$('room-block').classList.remove('hidden');setNet('Введи 6 символов кода комнаты.');return}
+ const code=$('join-code').value.toUpperCase().replace(/[^0-9]/g,'').slice(0,6);
+ if(code.length!==6){$('room-block').classList.remove('hidden');setNet('Введи 6 цифр кода комнаты.');return}
  shutdown();role='guest';$('room-block').classList.remove('hidden');setNet('Подключаемся к '+code+'…');
  if(typeof window.Peer!=='function'){setNet('Сетевой модуль недоступен.');role='menu';return}
  peer=usePeer();
@@ -538,5 +538,5 @@ $('copy-invite').addEventListener('click',async()=>{
 });
 bindTouch();
 const query=new URLSearchParams(location.search);const invite=query.get('join');
-if(invite){$('join-code').value=invite.replace(/[^A-Za-z2-9]/g,'').slice(0,6).toUpperCase()}
+if(invite){$('join-code').value=invite.replace(/[^0-9]/g,'').slice(0,6).toUpperCase()}
 gfx.setStage(arena,mode,previewStyles());requestAnimationFrame(liveFrame);
