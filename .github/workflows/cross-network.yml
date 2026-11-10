@@ -24,6 +24,27 @@ jobs:
           - { role: guest, mode: platform, os: macos-latest, browser: webkit }
     steps:
       - uses: actions/checkout@v4
+      - name: Wait for the published game assets to match this commit
+        shell: bash
+        run: |
+          set -euo pipefail
+          base='https://gptvikgpt-code.github.io/Steel-Arena-'
+          for attempt in $(seq 1 15); do
+            if curl -fsSL --connect-timeout 10 --max-time 25 "$base/" -o /tmp/steel-arena-cross-public.html \
+              && curl -fsSL --connect-timeout 10 --max-time 25 "$base/game.js" -o /tmp/steel-arena-cross-public.js \
+              && cmp -s game.js /tmp/steel-arena-cross-public.js; then
+              grep -q 'id="create-room"' /tmp/steel-arena-cross-public.html
+              grep -q 'id="join-code"' /tmp/steel-arena-cross-public.html
+              grep -q 'id="move-joystick"' /tmp/steel-arena-cross-public.html
+              echo "Public game.js matches the checked-out revision (attempt $attempt)."
+              break
+            fi
+            if [ "$attempt" -eq 15 ]; then
+              echo "::error::Public GitHub Pages assets did not match this revision."
+              exit 1
+            fi
+            sleep 15
+          done
       - uses: actions/setup-node@v4
         with:
           node-version: '22'

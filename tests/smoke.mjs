@@ -77,7 +77,7 @@ try {
   for (const mode of ['duel', 'platform']) {
     await host.locator(`[data-pick="mode"][data-value="${mode}"]`).click();
     await host.locator('#create-room').click();
-    await host.waitForFunction(() => /^[A-HJ-NP-Z2-9]{6}$/.test(document.querySelector('#room-code')?.textContent || ''));
+    await host.waitForFunction(() => /^\d{6}$/.test(document.querySelector('#room-code')?.textContent || ''));
     const code = await host.locator('#room-code').innerText();
     await host.waitForFunction(() => document.querySelector('#net-status')?.textContent?.includes('Комната создана'), null, { timeout: 30000 });
     await guest.locator('#join-code').fill(code);
