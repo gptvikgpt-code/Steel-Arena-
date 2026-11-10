@@ -44,7 +44,7 @@ try {
       assert.ok(match, 'Cannot find the six-digit room code generator');
       source = source.replace(match[0], `function makeCode(){return '${code}';}`);
     }
-    source += '\nwindow.__arenaCross = () => ({role, mode, arena, phase:match?.phase, fighters:players.map(p=>({x:p.x,z:p.z,hp:p.hp})), local:copyState(), remote:remoteInput, peerOpen:!!peer?.open, peerDisconnected:!!peer?.disconnected, dataChannelOpen:!!connection?.open, ice:connection?.peerConnection?{state:connection.peerConnection.connectionState, ice:connection.peerConnection.iceConnectionState, gathering:connection.peerConnection.iceGatheringState, signaling:connection.peerConnection.signalingState}:null});\nwindow.__arenaCrossAckReceived = false;\nwindow.__arenaCrossAck = () => send({t:\'cross-ack\'});\nlet __arenaCrossAckConnection = null;\nconst __arenaCrossWatchAck = () => { if(connection && connection !== __arenaCrossAckConnection){ __arenaCrossAckConnection = connection; connection.on(\'data\', msg => { if(msg?.t === \'cross-ack\') window.__arenaCrossAckReceived = true; }); } if(!window.__arenaCrossAckReceived) setTimeout(__arenaCrossWatchAck,50); };\n__arenaCrossWatchAck();\n';
+    source += '\nwindow.__arenaCross = () => ({role, mode, arena, phase:match?.phase, fighters:players.map(p=>({x:p.x,y:p.y,z:p.z,hp:p.hp,grounded:p.grounded})), local:copyState(), remote:remoteInput, peerOpen:!!peer?.open, peerDisconnected:!!peer?.disconnected, dataChannelOpen:!!connection?.open, ice:connection?.peerConnection?{state:connection.peerConnection.connectionState, ice:connection.peerConnection.iceConnectionState, gathering:connection.peerConnection.iceGatheringState, signaling:connection.peerConnection.signalingState}:null});\nwindow.__arenaCrossAckReceived = false;\nwindow.__arenaCrossAck = () => send({t:\'cross-ack\'});\nlet __arenaCrossAckConnection = null;\nconst __arenaCrossWatchAck = () => { if(connection && connection !== __arenaCrossAckConnection){ __arenaCrossAckConnection = connection; connection.on(\'data\', msg => { if(msg?.t === \'cross-ack\') window.__arenaCrossAckReceived = true; }); } if(!window.__arenaCrossAckReceived) setTimeout(__arenaCrossWatchAck,50); };\n__arenaCrossWatchAck();\n';
     await route.fulfill({ response, body: source, contentType: 'text/javascript' });
   });
   await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 45000 });
@@ -115,6 +115,18 @@ try {
     await page.waitForFunction(() => parseFloat(document.querySelector('#hp2')?.style.width || '100') < 100, null, { timeout: 45000 });
     await page.evaluate(() => window.__arenaCrossAck());
     await page.waitForTimeout(350);
+  }
+  if (mode === 'platform' && role === 'host') {
+    // Deterministically drop the authoritative fighter onto the left platform.
+    await page.evaluate(() => {
+      const p = players[0];
+      p.x = -5.2; p.z = 0; p.y = 2.5; p.vy = -1; p.grounded = false;
+    });
+    await page.waitForFunction(() => {
+      const p = window.__arenaCross?.()?.fighters?.[0];
+      return p?.grounded === true && Math.abs(p.y - 2.05) < 0.08;
+    }, null, { timeout: 7000 });
+    console.log('PLATFORM PHYSICS PASS: fighter lands on the rendered left platform.');
   }
   if (errors.length) throw new Error('Browser errors: ' + errors.join('; '));
   console.log(`CROSS-RUNNER ${mode} ${role} PASS: room ${code}, mobile controls, shared damage. NOT physical device certification.`);
