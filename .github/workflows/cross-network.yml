@@ -52,7 +52,7 @@ jobs:
       - run: node --check tests/cross-runner.mjs
       - run: npx playwright install --with-deps chromium
         if: matrix.browser == 'chromium'
-      - run: npx playwright install webkit
+      - run: npx playwright install --with-deps webkit
         if: matrix.browser == 'webkit'
       - name: Exercise real WebRTC across separate cloud machines
         env:
