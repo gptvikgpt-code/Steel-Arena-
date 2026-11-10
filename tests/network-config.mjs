@@ -29,8 +29,8 @@ assert.deepEqual(multipleTurn.iceServers.at(-1).urls, [
 ]);
 assert.equal(multipleTurn.iceTransportPolicy, 'relay');
 
-assert.throws(() => buildIceConfiguration({ urls: 'turn:relay.example.net:3478' }), /логин и временный credential/);
-assert.throws(() => buildIceConfiguration({ urls: 'turn:relay.example.net:3478', username: 'u' }), /логин и временный credential/);
+assert.throws(() => buildIceConfiguration({ urls: 'turn:relay.example.net:3478' }), /логин, и временный credential/);
+assert.throws(() => buildIceConfiguration({ urls: 'turn:relay.example.net:3478', username: 'u' }), /логин, и временный credential/);
 assert.throws(() => buildIceConfiguration({ urls: 'stun:stun.example.net:3478', username: 'u', credential: 'p' }), /turn: или turns:/);
 assert.throws(() => buildIceConfiguration({ username: 'u', credential: 'p' }), /адрес, логин и временный credential/);
 assert.throws(() => buildIceConfiguration({ forceRelay: true }), /адрес, логин и временный credential/);
