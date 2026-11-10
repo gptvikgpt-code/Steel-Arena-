@@ -3,7 +3,7 @@
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,maximum-scale=1,user-scalable=no">
 <meta name="theme-color" content="#10172a"><meta name="description" content="Steel Arena — оригинальный 3D-файтинг. Выбирай бойца, тренируйся с ботом или сражайся с другом онлайн в браузере.">
 <title>Steel Arena — 3D Fighting Online</title>
-<link rel="stylesheet" href="./styles.css?v=20261102-platform-visuals">
+<link rel="stylesheet" href="./styles.css?v=20261110-turn-settings">
 <script defer src="https://unpkg.com/peerjs@1.5.5/dist/peerjs.min.js"></script>
 </head><body>
 <canvas id="scene" aria-label="Трёхмерная боевая арена"></canvas>
@@ -82,7 +82,19 @@
   <button class="play-btn" id="start-bot">▶ БОЙ С БОТОМ</button>
   <button class="alt-btn" id="create-room">🌐 СОЗДАТЬ ОНЛАЙН</button>
  </div>
- <div class="code-row"><input class="code-input" id="join-code" maxlength="6" placeholder="КОД ДРУГА" aria-label="Код комнаты"><button class="ghost-btn" id="join-room">ВОЙТИ</button></div>
+ <div class="code-row"><input class="code-input" id="join-code" maxlength="6" inputmode="numeric" pattern="[0-9]{6}" placeholder="КОД ДРУГА" aria-label="Код комнаты"><button class="ghost-btn" id="join-room">ВОЙТИ</button></div>
+ <details class="network-settings">
+  <summary>⚙️ ДОПОЛНИТЕЛЬНО: TURN ДЛЯ СЛОЖНЫХ СЕТЕЙ</summary>
+  <p>Нужен только если прямое WebRTC-соединение не проходит. Вставь временные данные своего TURN-провайдера. Оба игрока вводят собственные действующие данные на своих устройствах.</p>
+  <label for="turn-urls">TURN-адреса (через запятую, turn: или turns:)</label>
+  <input class="code-input" id="turn-urls" type="text" autocomplete="off" autocapitalize="none" spellcheck="false" placeholder="turn:relay.example:3478?transport=udp">
+  <div class="turn-grid">
+   <div><label for="turn-username">Логин TURN</label><input class="code-input" id="turn-username" type="text" autocomplete="off" autocapitalize="none" spellcheck="false" placeholder="Временный username"></div>
+   <div><label for="turn-credential">Пароль / credential</label><input class="code-input" id="turn-credential" type="password" autocomplete="new-password" placeholder="Временный credential"></div>
+  </div>
+  <label class="turn-relay" for="turn-force-relay"><input id="turn-force-relay" type="checkbox"> Использовать только TURN (диагностика релея)</label>
+  <small>Значения не сохраняются и не входят в ссылку-приглашение. Не используй постоянные пароли. Для обычного режима TURN будет резервным маршрутом; для принудительной проверки флажок должен быть включён у обоих игроков.</small>
+ </details>
  <div id="room-block" class="hidden">
   <div class="eyebrow">ТВОЯ КОМНАТА</div><div class="code-row"><div id="room-code">------</div><button class="ghost-btn" id="copy-invite">🔗 КОПИРОВАТЬ</button></div>
   <input id="invite-link" class="code-input" aria-label="Ссылка приглашения" readonly value="">
@@ -100,5 +112,5 @@
   <div class="actions"><button class="play-btn" id="play-again">↻ ЕЩЁ РАЗ</button><button class="alt-btn" id="menu-return">В МЕНЮ</button></div>
  </div>
 </div>
-<script type="module" src="./game.js?v=20261103-ice-diagnostics"></script>
+<script type="module" src="./game.js?v=20261110-turn-settings"></script>
 </body></html>

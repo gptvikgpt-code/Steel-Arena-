@@ -94,3 +94,15 @@
 @keyframes fps-flash{from{opacity:1;transform:scale(.65)}to{opacity:0;transform:scale(1.8)}}
 #fps-help{display:none;position:fixed;z-index:7;right:22%;top:23%;color:#f0f7ffbd;font:700 10px sans-serif;pointer-events:none;text-shadow:0 1px 3px #000}
 .fight.first-person #fps-help{display:block}
+
+
+/* Optional per-device TURN configuration. Credentials remain in the live page only. */
+.network-settings{margin-top:10px;padding:10px 12px;border:1px solid #8ba5c655;border-radius:10px;background:#0c1425a8;color:#dce7f6}
+.network-settings summary{cursor:pointer;font-size:11px;font-weight:900;letter-spacing:.04em;color:#f1d5a7;touch-action:manipulation}
+.network-settings p,.network-settings small{display:block;color:#b9c9dc;font-size:10px;line-height:1.45;margin:8px 0}
+.network-settings label:not(.turn-relay){display:block;margin:8px 0 4px;color:#dce7f6;font-size:10px;font-weight:800}
+.network-settings .code-input{padding:9px;font-size:11px;letter-spacing:0;text-transform:none}
+.turn-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.turn-relay{display:flex!important;align-items:center;gap:8px;margin-top:10px;color:#f3d9b4;font-size:10px;font-weight:800}
+.turn-relay input{width:17px;height:17px;accent-color:#f4bb68;touch-action:manipulation}
+@media(max-width:500px){.turn-grid{grid-template-columns:1fr}}

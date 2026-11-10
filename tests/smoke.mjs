@@ -73,6 +73,10 @@ try {
     assert.equal(await page.locator('#fighter-list .pick').count(), 6);
     assert.equal(await page.locator('#mobile-controls [data-key]').count(), 8, 'All 8 touch action buttons must be present');
     assert.equal(await page.locator('#move-joystick').count(), 1, 'Movement joystick must be present');
+    assert.equal(await page.locator('#turn-urls').count(), 1, 'Optional TURN URL input must be present');
+    assert.equal(await page.locator('#turn-username').count(), 1, 'Optional TURN username input must be present');
+    assert.equal(await page.locator('#turn-credential').count(), 1, 'Optional TURN credential input must be present');
+    assert.equal(await page.locator('#turn-force-relay').count(), 1, 'TURN-only diagnostic toggle must be present');
   }
   for (const mode of ['duel', 'platform']) {
     await host.locator(`[data-pick="mode"][data-value="${mode}"]`).click();

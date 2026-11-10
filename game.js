@@ -1,5 +1,6 @@
 
 import {createGraphics} from './graphics.js?v=20261103jump';
+import {buildIceConfiguration} from './network-config.js';
 const $=id=>document.getElementById(id);
 const clamp=(v,min,max)=>Math.max(min,Math.min(max,v));
 const classes={
@@ -390,16 +391,23 @@ function makeCode(){
  const buf=new Uint8Array(6);crypto.getRandomValues(buf);
  return [...buf].map(v=>String(v%10)).join('');
 }
-// STUN can establish direct WebRTC paths on some mobile networks. It is not
-// a replacement for a TURN relay when either network uses restrictive NAT.
-const ICE_SERVERS=[
- {urls:'stun:stun.l.google.com:19302'},
- {urls:'stun:stun1.l.google.com:19302'},
- {urls:'stun:stun.cloudflare.com:3478'}
-];
+// STUN is the default path. Optional short-lived TURN credentials can be
+// supplied by each player in the advanced network settings before connecting.
 function usePeer(id){
  if(typeof window.Peer!=='function'){setNet('Не удалось загрузить сетевой модуль. Проверь интернет и блокировщик рекламы.');return null}
- return new window.Peer(id,{debug:0,config:{iceServers:ICE_SERVERS}});
+ let config;
+ try{
+  config=buildIceConfiguration({
+   urls:$('turn-urls').value,
+   username:$('turn-username').value,
+   credential:$('turn-credential').value,
+   forceRelay:$('turn-force-relay').checked
+  });
+ }catch(error){
+  setNet(error.message);
+  return null;
+ }
+ return new window.Peer(id,{debug:0,config});
 }
 function networkErrorText(e){
  const detail=String(e?.message||e?.type||'неизвестная ошибка');

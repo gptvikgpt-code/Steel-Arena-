@@ -4,7 +4,7 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "check:syntax": "node --check game.js && node --check graphics.js",
+    "check:syntax": "node --check game.js && node --check graphics.js && node --check network-config.js && node tests/network-config.mjs",
     "test:online": "node tests/smoke.mjs"
   },
   "devDependencies": {
