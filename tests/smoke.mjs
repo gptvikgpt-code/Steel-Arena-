@@ -17,7 +17,7 @@ const server = createServer(async (req, res) => {
     if (path !== root && !path.startsWith(root + sep)) throw new Error('bad path');
     let bytes = await readFile(path);
     // Read-only snapshots only in the local test server, never in deployed game code.
-    if (path.endsWith('/game.js')) bytes = Buffer.concat([bytes, Buffer.from('\nwindow.__arenaSmoke = () => ({role, mode, arena, phase:match?.phase, delay:match?.delay, worldTime, fighters:players.map(p => ({x:p.x,y:p.y,z:p.z,hp:p.hp,grounded:p.grounded,dir:p.dir,attack:p.attack?.kind})), local:copyState(), remote:remoteInput});\n')]);
+    if (path.endsWith('/game.js')) bytes = Buffer.concat([bytes, Buffer.from('\nwindow.__arenaSmoke = () => ({role, mode, arena, phase:match?.phase, delay:match?.delay, worldTime, fighters:players.map(p => ({x:p.x,y:p.y,z:p.z,hp:p.hp,grounded:p.grounded,dir:p.dir,attack:p.attack?.kind})), local:copyState(), remote:remoteInput});\nwindow.__arenaSmokeDropOnPlatform = () => { const p = players[0]; p.x=-5.2; p.z=0; p.y=2.5; p.vy=-1; p.grounded=false; };\n')]);
     res.writeHead(200, { 'Content-Type': mime[extname(path)] || 'application/octet-stream', 'Cache-Control': 'no-store' });
     res.end(bytes);
   } catch (err) {
@@ -60,7 +60,7 @@ try {
         const response = await route.fetch();
         assert.ok(response.ok(), 'Published game.js must be available');
         const source = await response.body();
-        const snapshot = '\nwindow.__arenaSmoke = () => ({role, mode, arena, phase:match?.phase, delay:match?.delay, worldTime, fighters:players.map(p => ({x:p.x,y:p.y,z:p.z,hp:p.hp,grounded:p.grounded,dir:p.dir,attack:p.attack?.kind})), local:copyState(), remote:remoteInput});\n';
+        const snapshot = '\nwindow.__arenaSmoke = () => ({role, mode, arena, phase:match?.phase, delay:match?.delay, worldTime, fighters:players.map(p => ({x:p.x,y:p.y,z:p.z,hp:p.hp,grounded:p.grounded,dir:p.dir,attack:p.attack?.kind})), local:copyState(), remote:remoteInput});\nwindow.__arenaSmokeDropOnPlatform = () => { const p = players[0]; p.x=-5.2; p.z=0; p.y=2.5; p.vy=-1; p.grounded=false; };\n';
         await route.fulfill({ response, body: Buffer.concat([source, Buffer.from(snapshot)]) });
       });
     }
@@ -148,10 +148,7 @@ try {
     assert.ok(Math.abs(hostHp - guestHp) <= 15, 'Guest health must follow authoritative host health');
     if (errors.length) throw new Error('Browser errors during active match:\\n' + errors.join('\\n'));
     if (mode === 'platform') {
-      await host.evaluate(() => {
-        const p = players[0];
-        p.x = -5.2; p.z = 0; p.y = 2.5; p.vy = -1; p.grounded = false;
-      });
+      await host.evaluate(() => window.__arenaSmokeDropOnPlatform());
       await host.waitForFunction(() => {
         const p = window.__arenaSmoke?.()?.fighters?.[0];
         return p?.grounded === true && Math.abs(p.y - 2.05) < 0.08;
