@@ -18,9 +18,9 @@ jobs:
       max-parallel: 4
       matrix:
         include:
-          - { role: host, mode: duel, os: ubuntu-latest, browser: chromium }
+          - { role: host, mode: duel, os: ubuntu-24.04, browser: chromium }
           - { role: guest, mode: duel, os: macos-latest, browser: webkit }
-          - { role: host, mode: platform, os: ubuntu-latest, browser: chromium }
+          - { role: host, mode: platform, os: ubuntu-24.04, browser: chromium }
           - { role: guest, mode: platform, os: macos-latest, browser: webkit }
     steps:
       - uses: actions/checkout@v4
