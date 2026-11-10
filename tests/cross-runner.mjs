@@ -1,7 +1,7 @@
 /**
  * Experimental CROSS-RUNNER WebRTC smoke test.
- * Host and guest run on separate GitHub-hosted machines (Ubuntu Chromium vs
- * macOS WebKit). This is still NOT physical Android/iPhone certification.
+ * Host and guest run on separate Ubuntu 24.04 GitHub-hosted machines
+ * (Chromium vs WebKit). This is still NOT physical Android/iPhone certification.
  */
 import { createHash } from 'node:crypto';
 import assert from 'node:assert/strict';
@@ -44,7 +44,7 @@ try {
       assert.ok(match, 'Cannot find the six-digit room code generator');
       source = source.replace(match[0], `function makeCode(){return '${code}';}`);
     }
-    source += '\nwindow.__arenaCross = () => ({role, mode, arena, phase:match?.phase, fighters:players.map(p=>({x:p.x,z:p.z,hp:p.hp})), local:copyState(), remote:remoteInput, peerOpen:!!peer?.open, peerDisconnected:!!peer?.disconnected, dataChannelOpen:!!connection?.open, ice:connection?.peerConnection?{state:connection.peerConnection.connectionState, ice:connection.peerConnection.iceConnectionState, gathering:connection.peerConnection.iceGatheringState, signaling:connection.peerConnection.signalingState}:null});\n';
+    source += '\nwindow.__arenaCross = () => ({role, mode, arena, phase:match?.phase, fighters:players.map(p=>({x:p.x,z:p.z,hp:p.hp})), local:copyState(), remote:remoteInput, peerOpen:!!peer?.open, peerDisconnected:!!peer?.disconnected, dataChannelOpen:!!connection?.open, ice:connection?.peerConnection?{state:connection.peerConnection.connectionState, ice:connection.peerConnection.iceConnectionState, gathering:connection.peerConnection.iceGatheringState, signaling:connection.peerConnection.signalingState}:null});\nwindow.__arenaCrossAckReceived = false;\nwindow.__arenaCrossAck = () => send({t:\'cross-ack\'});\nlet __arenaCrossAckConnection = null;\nconst __arenaCrossWatchAck = () => { if(connection && connection !== __arenaCrossAckConnection){ __arenaCrossAckConnection = connection; connection.on(\'data\', msg => { if(msg?.t === \'cross-ack\') window.__arenaCrossAckReceived = true; }); } if(!window.__arenaCrossAckReceived) setTimeout(__arenaCrossWatchAck,50); };\n__arenaCrossWatchAck();\n';
     await route.fulfill({ response, body: source, contentType: 'text/javascript' });
   });
   await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 45000 });
@@ -109,8 +109,12 @@ try {
     await attack.evaluate(el => el.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true, pointerId: 40 })));
     await page.waitForFunction(() => parseFloat(document.querySelector('#hp2')?.style.width || '100') < 100, null, { timeout: 12000 });
     await attack.evaluate(el => el.dispatchEvent(new PointerEvent('pointerup', { bubbles: true, pointerId: 40 })));
+    // Keep the host alive until the guest has received the authoritative damage update.
+    await page.waitForFunction(() => window.__arenaCrossAckReceived === true, null, { timeout: 20000 });
   } else {
     await page.waitForFunction(() => parseFloat(document.querySelector('#hp2')?.style.width || '100') < 100, null, { timeout: 45000 });
+    await page.evaluate(() => window.__arenaCrossAck());
+    await page.waitForTimeout(350);
   }
   if (errors.length) throw new Error('Browser errors: ' + errors.join('; '));
   console.log(`CROSS-RUNNER ${mode} ${role} PASS: room ${code}, mobile controls, shared damage. NOT physical device certification.`);
