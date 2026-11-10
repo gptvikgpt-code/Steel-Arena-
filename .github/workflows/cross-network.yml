@@ -19,9 +19,9 @@ jobs:
       matrix:
         include:
           - { role: host, mode: duel, os: ubuntu-24.04, browser: chromium }
-          - { role: guest, mode: duel, os: macos-latest, browser: webkit }
+          - { role: guest, mode: duel, os: ubuntu-24.04, browser: webkit }
           - { role: host, mode: platform, os: ubuntu-24.04, browser: chromium }
-          - { role: guest, mode: platform, os: macos-latest, browser: webkit }
+          - { role: guest, mode: platform, os: ubuntu-24.04, browser: webkit }
     steps:
       - uses: actions/checkout@v4
       - name: Wait for the published game assets to match this commit
