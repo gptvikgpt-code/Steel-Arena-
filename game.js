@@ -227,7 +227,12 @@ function fighterStep(f,enemy,inp,dt){
    else if(inp.light)performAttack(f,'light');
   }
  }
- const props=[];
+ // Match the walkable tops drawn by graphics.js in platform mode.
+ const props=mode==='platform'?[ 
+  {x:-5.2,z:0,halfX:1.54,halfZ:3.1,height:2.05},
+  {x:0,z:0,halfX:1.72,halfZ:3.1,height:3.05},
+  {x:5.1,z:0,halfX:1.54,halfZ:3.1,height:2.1}
+ ]:[];
  const mazeWalls=[[-7,-19,1.1,11],[-3.5,-15,7,.9],[5,-19,1.1,12],[-7,1,1.1,13],[-3,5,6,.9],[7,0,1.1,14],[-5,20,1.1,10],[4,19,1.1,10],[-1,25,8,.9],[-5,-1,5,.9],[4,-8,5,.9]];
  const obstacles=mazeWalls.map(([x,z,w,d])=>({x,z,halfX:w/2,halfZ:d/2,height:1.5}));
  for(const [x,z] of [[-7,-9],[7,13],[-7,13]])obstacles.push({x,z,halfX:1.65,halfZ:1.5,height:3});
@@ -242,7 +247,7 @@ function fighterStep(f,enemy,inp,dt){
  f.shotTime=Math.max(0,(f.shotTime||0)-dt);
  const oldY=f.y;f.vy-=23*dt;f.y+=f.vy*dt;f.grounded=false;
  let landing=0;
- if(f.vy<=0)for(const prop of props){if(Math.abs(f.x-prop.x)<prop.half+.22&&Math.abs(f.z-prop.z)<prop.half+.22&&oldY>=prop.height-.16&&f.y<=prop.height)landing=Math.max(landing,prop.height);}
+ if(f.vy<=0)for(const prop of props){if(Math.abs(f.x-prop.x)<(prop.halfX??prop.half)+.22&&Math.abs(f.z-prop.z)<(prop.halfZ??prop.half)+.22&&oldY>=prop.height-.16&&f.y<=prop.height)landing=Math.max(landing,prop.height);}
  if(f.y<=landing&&f.vy<=0){f.y=landing;f.vy=0;f.grounded=true;f.jumps=0}
  if(f.attack){
   f.attack.remaining-=dt;
