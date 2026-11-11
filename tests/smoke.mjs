@@ -96,6 +96,12 @@ window.__arenaRenderProbe = () => {
     page.on('console', msg => { if (msg.type() === 'error' && /uncaught|peerjs|failed to fetch dynamically imported|module script/i.test(msg.text())) errors.push(`${name}: ${msg.text()}`); });
     await page.goto(url, { waitUntil: 'domcontentloaded' });
     await page.waitForFunction(() => document.querySelector('#scene')?.width > 400 && typeof window.Peer === 'function', null, { timeout: 45000 });
+    const sanitizedNick = await page.locator('#player-nick').evaluate(el => {
+      el.value = 'ALEX_123<test>\\u0001';
+      el.dispatchEvent(new Event('change', { bubbles: true }));
+      return el.value;
+    });
+    assert.equal(sanitizedNick, 'ALEX_123test', 'Nickname sanitization must preserve ASCII letters/digits and remove markup/control chars');
     assert.equal(await page.locator('#fighter-list .pick').count(), 6);
     assert.equal(await page.locator('#mobile-controls [data-key]').count(), 8, 'All 8 touch action buttons must be present');
     assert.equal(await page.locator('#move-joystick').count(), 1, 'Movement joystick must be present');
