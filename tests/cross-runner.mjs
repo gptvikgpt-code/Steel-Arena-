@@ -90,19 +90,50 @@ try {
           contender.on('error', error => { clearTimeout(timer); reject(error); });
         });
         const incoming = contender.connect('steel-arena-' + roomCode, { reliable: true, serialization: 'json' });
-        const rejected = await new Promise(resolve => {
-          const timer = setTimeout(() => resolve(false), 10000);
-          incoming.on('close', () => { clearTimeout(timer); resolve(true); });
-          incoming.on('error', () => { clearTimeout(timer); resolve(false); });
+        const admission = await new Promise(resolve => {
+          let receivedBusy = false;
+          let closed = false;
+          let settled = false;
+          const finish = () => {
+            if (receivedBusy && closed && !settled) {
+              settled = true;
+              clearTimeout(timer);
+              resolve({ receivedBusy, closed });
+            }
+          };
+          const timer = setTimeout(() => {
+            if (!settled) {
+              settled = true;
+              resolve({ receivedBusy, closed });
+            }
+          }, 10000);
+          incoming.on('data', msg => {
+            if (msg?.t === 'busy') {
+              receivedBusy = true;
+              finish();
+            }
+          });
+          incoming.on('close', () => {
+            closed = true;
+            finish();
+          });
+          incoming.on('error', () => {
+            if (!settled) {
+              settled = true;
+              clearTimeout(timer);
+              resolve({ receivedBusy, closed, error: true });
+            }
+          });
         });
         await new Promise(resolve => setTimeout(resolve, 300));
         const current = window.__arenaCross();
-        return { rejected, remotePeer: current?.remotePeer, dataChannelOpen: current?.dataChannelOpen };
+        return { ...admission, remotePeer: current?.remotePeer, dataChannelOpen: current?.dataChannelOpen };
       } finally {
         contender.destroy();
       }
     }, code);
-    assert.equal(admission.rejected, true, 'A second guest must be rejected while the room is occupied');
+    assert.equal(admission.receivedBusy, true, 'A second guest must receive an explicit room-busy message');
+    assert.equal(admission.closed, true, 'The second guest connection must be closed after rejection');
     assert.equal(admission.remotePeer, state.remotePeer, 'The original guest connection must remain assigned');
     assert.equal(admission.dataChannelOpen, true, 'The original guest data channel must remain open');
   }
