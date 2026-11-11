@@ -64,7 +64,7 @@ window.__arenaRenderProbe = () => {
       return probe?.frame > 0 && probe.calls > 0 && probe.triangles > 0;
     }, null, { timeout: 45000 });
     const probe = await renderPage.evaluate(() => window.__arenaRenderProbe());
-    assert.match(probe.glVersion, /WebGL 2\\.0/, `${label} must create a WebGL 2 context`);
+    assert.ok(probe.glVersion.includes('WebGL 2.0'), `${label} must create a WebGL 2 context`);
     assert.ok(probe.triangles > 0, `${label} must render actual 3D geometry`);
     console.log(`${label} real renderer PASS: frame ${probe.frame}, ${probe.triangles} triangles, ${probe.glVersion}`);
     await renderPage.close();
