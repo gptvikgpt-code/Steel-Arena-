@@ -44,7 +44,7 @@ try {
       assert.ok(match, 'Cannot find the six-digit room code generator');
       source = source.replace(match[0], `function makeCode(){return '${code}';}`);
     }
-    source += '\nwindow.__arenaCross = () => ({role, mode, arena, phase:match?.phase, fighters:players.map(p=>({x:p.x,y:p.y,z:p.z,hp:p.hp,grounded:p.grounded})), local:copyState(), remote:remoteInput, peerOpen:!!peer?.open, peerDisconnected:!!peer?.disconnected, dataChannelOpen:!!connection?.open, ice:connection?.peerConnection?{state:connection.peerConnection.connectionState, ice:connection.peerConnection.iceConnectionState, gathering:connection.peerConnection.iceGatheringState, signaling:connection.peerConnection.signalingState}:null});\nwindow.__arenaCrossDropOnPlatform = () => { const p=players[0]; p.x=-5.2; p.z=0; p.y=2.5; p.vy=-1; p.grounded=false; };\nwindow.__arenaCrossAckReceived = false;\nwindow.__arenaCrossAck = () => send({t:\'cross-ack\'});\nlet __arenaCrossAckConnection = null;\nconst __arenaCrossWatchAck = () => { if(connection && connection !== __arenaCrossAckConnection){ __arenaCrossAckConnection = connection; connection.on(\'data\', msg => { if(msg?.t === \'cross-ack\') window.__arenaCrossAckReceived = true; }); } if(!window.__arenaCrossAckReceived) setTimeout(__arenaCrossWatchAck,50); };\n__arenaCrossWatchAck();\n';
+    source += '\nwindow.__arenaCross = () => ({role, mode, arena, phase:match?.phase, fighters:players.map(p=>({x:p.x,y:p.y,z:p.z,hp:p.hp,grounded:p.grounded})), local:copyState(), remote:remoteInput, peerOpen:!!peer?.open, peerDisconnected:!!peer?.disconnected, dataChannelOpen:!!connection?.open, remotePeer:connection?.peer||null, ice:connection?.peerConnection?{state:connection.peerConnection.connectionState, ice:connection.peerConnection.iceConnectionState, gathering:connection.peerConnection.iceGatheringState, signaling:connection.peerConnection.signalingState}:null});\nwindow.__arenaCrossDropOnPlatform = () => { const p=players[0]; p.x=-5.2; p.z=0; p.y=2.5; p.vy=-1; p.grounded=false; };\nwindow.__arenaCrossAckReceived = false;\nwindow.__arenaCrossAck = () => send({t:\'cross-ack\'});\nlet __arenaCrossAckConnection = null;\nconst __arenaCrossWatchAck = () => { if(connection && connection !== __arenaCrossAckConnection){ __arenaCrossAckConnection = connection; connection.on(\'data\', msg => { if(msg?.t === \'cross-ack\') window.__arenaCrossAckReceived = true; }); } if(!window.__arenaCrossAckReceived) setTimeout(__arenaCrossWatchAck,50); };\n__arenaCrossWatchAck();\n';
     await route.fulfill({ response, body: source, contentType: 'text/javascript' });
   });
   await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 45000 });
@@ -78,6 +78,34 @@ try {
   await page.locator('body.fight').waitFor({ timeout: 140000 });
   await page.waitForFunction(() => window.__arenaCross?.()?.phase === 'fight', null, { timeout: 40000 });
   const state = await page.evaluate(() => window.__arenaCross());
+  if (role === 'host') {
+    // A second client must be rejected while the first guest owns the room.
+    // This guards against a pending data channel being replaced during setup.
+    const admission = await page.evaluate(async roomCode => {
+      const contender = new window.Peer(undefined, { debug: 0 });
+      try {
+        await new Promise((resolve, reject) => {
+          const timer = setTimeout(() => reject(new Error('Second peer could not open signaling')), 15000);
+          contender.on('open', () => { clearTimeout(timer); resolve(); });
+          contender.on('error', error => { clearTimeout(timer); reject(error); });
+        });
+        const incoming = contender.connect('steel-arena-' + roomCode, { reliable: true, serialization: 'json' });
+        const rejected = await new Promise(resolve => {
+          const timer = setTimeout(() => resolve(false), 10000);
+          incoming.on('close', () => { clearTimeout(timer); resolve(true); });
+          incoming.on('error', () => { clearTimeout(timer); resolve(false); });
+        });
+        await new Promise(resolve => setTimeout(resolve, 300));
+        const current = window.__arenaCross();
+        return { rejected, remotePeer: current?.remotePeer, dataChannelOpen: current?.dataChannelOpen };
+      } finally {
+        contender.destroy();
+      }
+    }, code);
+    assert.equal(admission.rejected, true, 'A second guest must be rejected while the room is occupied');
+    assert.equal(admission.remotePeer, state.remotePeer, 'The original guest connection must remain assigned');
+    assert.equal(admission.dataChannelOpen, true, 'The original guest data channel must remain open');
+  }
   assert.equal(state.mode, mode);
   assert.equal(state.arena, 'garden');
   assert.equal(state.role, role);
