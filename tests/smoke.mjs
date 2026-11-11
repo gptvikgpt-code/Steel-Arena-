@@ -182,7 +182,7 @@ window.__arenaRenderProbe = () => {
     // wall-clock milliseconds that vary with browser scheduling and CI load.
     await host.waitForFunction(() => {
       const fighters = window.__arenaSmoke?.()?.fighters;
-      return fighters?.length === 2 && fighters[1].x - fighters[0].x < 1.85;
+      return fighters?.length === 2 && Math.abs(fighters[1].x - fighters[0].x) < 1.85;
     }, null, { timeout: 12000 });
     await Promise.all([stopSteering(host), stopSteering(guest)]);
     await host.waitForTimeout(250);
@@ -207,7 +207,7 @@ window.__arenaRenderProbe = () => {
       const state = window.__arenaSmoke?.();
       return state?.remote?.axisX < -0.7
         && state?.fighters?.length === 2
-        && state.fighters[1].x - state.fighters[0].x < 1.85;
+        && Math.abs(state.fighters[1].x - state.fighters[0].x) < 1.85;
     }, null, { timeout: 12000 });
     await stopSteering(guest);
     await host.waitForTimeout(250);
@@ -238,6 +238,9 @@ window.__arenaRenderProbe = () => {
     await host.waitForFunction(() => window.__arenaSmoke?.()?.remote?.axisX > 0.7, null, { timeout: 10000 });
     await guest.locator('#back-menu').click();
     await guest.waitForFunction(() => window.__arenaSmoke?.()?.local?.axisX === 0, null, { timeout: 5000 });
+    // Let the guest PeerJS teardown settle before reusing the same browser context
+    // for the next room/mode in this sequential smoke run.
+    await guest.waitForTimeout(350);
     await host.waitForFunction(() => Object.keys(window.__arenaSmoke?.()?.remote || {}).length === 0, null, { timeout: 12000 });
     await host.locator('#back-menu').click();
     await host.waitForFunction(() => window.__arenaSmoke?.()?.local?.axisX === 0, null, { timeout: 5000 });
