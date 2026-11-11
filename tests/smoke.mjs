@@ -97,7 +97,7 @@ window.__arenaRenderProbe = () => {
     await page.goto(url, { waitUntil: 'domcontentloaded' });
     await page.waitForFunction(() => document.querySelector('#scene')?.width > 400 && typeof window.Peer === 'function', null, { timeout: 45000 });
     const sanitizedNick = await page.locator('#player-nick').evaluate(el => {
-      el.value = 'ALEX_123<test>\\u0001';
+      el.value = 'ALEX_123<test>' + String.fromCharCode(1);
       el.dispatchEvent(new Event('change', { bubbles: true }));
       return el.value;
     });
