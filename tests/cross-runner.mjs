@@ -168,12 +168,35 @@ try {
     await attack.evaluate(el => el.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true, pointerId: 40 })));
     await page.waitForFunction(() => parseFloat(document.querySelector('#hp2')?.style.width || '100') < 100, null, { timeout: 12000 });
     await attack.evaluate(el => el.dispatchEvent(new PointerEvent('pointerup', { bubbles: true, pointerId: 40 })));
-    // Keep the host alive until the guest has received the authoritative damage update.
+    // First prove host -> guest damage reached the guest before asking it to retaliate.
     await page.waitForFunction(() => window.__arenaCrossAckReceived === true, null, { timeout: 20000 });
+    // Then prove guest -> host damage is simulated authoritatively and replicated back.
+    await page.waitForFunction(() => parseFloat(document.querySelector('#hp1')?.style.width || '100') < 100, null, { timeout: 45000 });
+    await page.evaluate(() => window.__arenaCrossAck());
   } else {
     await page.waitForFunction(() => parseFloat(document.querySelector('#hp2')?.style.width || '100') < 100, null, { timeout: 45000 });
     await page.evaluate(() => window.__arenaCrossAck());
     await page.waitForTimeout(350);
+    const pad = page.locator('#move-joystick');
+    await pad.evaluate(el => {
+      const r = el.getBoundingClientRect();
+      el.dispatchEvent(new PointerEvent('pointerdown', {
+        bubbles: true, pointerId: 41, isPrimary: true,
+        clientX: r.left + r.width / 2 - .32 * r.width,
+        clientY: r.top + r.height / 2
+      }));
+    });
+    await page.waitForFunction(() => {
+      const s = window.__arenaCross?.();
+      return s?.local?.axisX < -.7 && s?.fighters?.length === 2 && s.fighters[1].x - s.fighters[0].x < 1.85;
+    }, null, { timeout: 30000 });
+    await pad.evaluate(el => el.dispatchEvent(new PointerEvent('pointerup', { bubbles: true, pointerId: 41 })));
+    await page.waitForTimeout(250);
+    const attack = page.locator('#mobile-controls [data-key="light"]');
+    await attack.evaluate(el => el.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true, pointerId: 42 })));
+    await page.waitForFunction(() => parseFloat(document.querySelector('#hp1')?.style.width || '100') < 100, null, { timeout: 12000 });
+    await attack.evaluate(el => el.dispatchEvent(new PointerEvent('pointerup', { bubbles: true, pointerId: 42 })));
+    await page.waitForFunction(() => window.__arenaCrossAckReceived === true, null, { timeout: 20000 });
   }
   if (mode === 'platform' && role === 'host') {
     // Deterministically drop the authoritative fighter onto the left platform.
