@@ -17,7 +17,7 @@ const server = createServer(async (req, res) => {
     if (path !== root && !path.startsWith(root + sep)) throw new Error('bad path');
     let bytes = await readFile(path);
     // Read-only snapshots only in the local test server, never in deployed game code.
-    if (path.endsWith('/game.js')) bytes = Buffer.concat([bytes, Buffer.from('\nwindow.__arenaSmoke = () => ({role, mode, arena, phase:match?.phase, delay:match?.delay, worldTime, fighters:players.map(p => ({x:p.x,y:p.y,z:p.z,hp:p.hp,grounded:p.grounded,dir:p.dir,attack:p.attack?.kind})), local:copyState(), remote:remoteInput});\nwindow.__arenaSmokeDropOnPlatform = () => { const p = players[0]; p.x=-5.2; p.z=0; p.y=2.5; p.vy=-1; p.grounded=false; };\n')]);
+    if (path.endsWith('/game.js')) bytes = Buffer.concat([bytes, Buffer.from('\nwindow.__arenaSmoke = () => ({role, mode, arena, phase:match?.phase, delay:match?.delay, worldTime, fighters:players.map(p => ({x:p.x,y:p.y,z:p.z,hp:p.hp,grounded:p.grounded,dir:p.dir,attack:p.attack?.kind})), local:copyState(), remote:remoteInput, connectionOpen:!!connection?.open});\nwindow.__arenaSmokeDropOnPlatform = () => { const p = players[0]; p.x=-5.2; p.z=0; p.y=2.5; p.vy=-1; p.grounded=false; };\n')]);
     res.writeHead(200, { 'Content-Type': mime[extname(path)] || 'application/octet-stream', 'Cache-Control': 'no-store' });
     res.end(bytes);
   } catch (err) {
@@ -86,7 +86,7 @@ window.__arenaRenderProbe = () => {
         const response = await route.fetch();
         assert.ok(response.ok(), 'Published game.js must be available');
         const source = await response.body();
-        const snapshot = '\nwindow.__arenaSmoke = () => ({role, mode, arena, phase:match?.phase, delay:match?.delay, worldTime, fighters:players.map(p => ({x:p.x,y:p.y,z:p.z,hp:p.hp,grounded:p.grounded,dir:p.dir,attack:p.attack?.kind})), local:copyState(), remote:remoteInput});\nwindow.__arenaSmokeDropOnPlatform = () => { const p = players[0]; p.x=-5.2; p.z=0; p.y=2.5; p.vy=-1; p.grounded=false; };\n';
+        const snapshot = '\nwindow.__arenaSmoke = () => ({role, mode, arena, phase:match?.phase, delay:match?.delay, worldTime, fighters:players.map(p => ({x:p.x,y:p.y,z:p.z,hp:p.hp,grounded:p.grounded,dir:p.dir,attack:p.attack?.kind})), local:copyState(), remote:remoteInput, connectionOpen:!!connection?.open});\nwindow.__arenaSmokeDropOnPlatform = () => { const p = players[0]; p.x=-5.2; p.z=0; p.y=2.5; p.vy=-1; p.grounded=false; };\n';
         await route.fulfill({ response, body: Buffer.concat([source, Buffer.from(snapshot)]) });
       });
     }
@@ -113,6 +113,32 @@ window.__arenaRenderProbe = () => {
     await guest.locator('#join-code').fill(code);
     await guest.locator('#join-room').click();
     await Promise.all([host.locator('body.fight').waitFor({ timeout: 40000 }), guest.locator('body.fight').waitFor({ timeout: 40000 })]);
+    // A third client must receive a durable, actionable room-busy message.
+    // The host must keep the original guest's data channel open.
+    const contender = await i.newPage();
+    contender.on('pageerror', err => errors.push(`Busy contender: ${err.message}`));
+    await contender.route('**/graphics.js*', route => route.fulfill({
+      status: 200, contentType: 'text/javascript', body: mockGraphics
+    }));
+    if (liveUrl) {
+      await contender.route('**/game.js*', async route => {
+        const response = await route.fetch();
+        assert.ok(response.ok(), 'Published game.js must be available for busy-room check');
+        const source = await response.text();
+        const snapshot = "\nwindow.__arenaSmoke = () => ({role, mode, arena, phase:match?.phase, delay:match?.delay, worldTime, fighters:players.map(p => ({x:p.x,y:p.y,z:p.z,hp:p.hp,grounded:p.grounded,dir:p.dir,attack:p.attack?.kind})), local:copyState(), remote:remoteInput, connectionOpen:!!connection?.open});\n";
+        await route.fulfill({ response, body: source + snapshot });
+      });
+    }
+    await contender.goto(url, { waitUntil: 'domcontentloaded' });
+    await contender.waitForFunction(() => typeof window.Peer === 'function', null, { timeout: 45000 });
+    await contender.locator('#join-code').fill(code);
+    await contender.locator('#join-room').click();
+    await contender.waitForFunction(() => document.querySelector('#net-status')?.textContent?.includes('Комната уже занята'), null, { timeout: 20000 });
+    await contender.waitForTimeout(400);
+    assert.match(await contender.locator('#net-status').innerText(), /Комната уже занята/, 'Busy message must remain visible after disconnect');
+    assert.equal(await contender.evaluate(() => window.__arenaSmoke?.()?.connectionOpen), false, 'Rejected contender must close its connection');
+    assert.equal(await host.evaluate(() => window.__arenaSmoke?.()?.connectionOpen), true, 'The original guest connection must remain open');
+    await contender.close();
     await host.waitForFunction(() => window.__arenaSmoke?.()?.phase === 'fight', null, { timeout: 30000 });
     const hostStage = await host.evaluate(() => window.__arenaSmoke?.());
     const guestStage = await guest.evaluate(() => window.__arenaSmoke?.());

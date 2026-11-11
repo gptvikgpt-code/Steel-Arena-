@@ -421,6 +421,7 @@ function networkErrorText(e){
  return 'Ошибка связи: '+detail;
 }
 function setHandlers(c,isHost){
+ let rejectedAsBusy=false;
  connection=c;
  c.on('open',()=>{
   if(!isHost){setNet('Связь установлена, ждём начала боя…');send({t:'hello',style:choice,weapon:weaponChoice,nick:myNick()})}
@@ -453,7 +454,9 @@ function setHandlers(c,isHost){
    if(msg.t==='rematch'&&match?.phase==='finished'){const [p1,p2]=players;const firstNick=p1.nick,secondNick=p2.nick;newMatch(p1.style,p2.style,p1.weapon,p2.weapon);players[0].nick=firstNick;players[1].nick=secondNick;players[0].team='host';players[1].team='guest';send({t:'start',mode,arena,first:p1.style,second:p2.style,firstWeapon:p1.weapon,secondWeapon:p2.weapon,firstNick,secondNick})}
   }else{
    if(msg.t==='busy'){
+    rejectedAsBusy=true;
     setNet('Комната уже занята. Попроси хозяина создать новую комнату.');
+    try{c.close()}catch(_){}
     return;
    }
    if(msg.t==='start'){
@@ -474,6 +477,8 @@ function setHandlers(c,isHost){
   if(connection!==c)return;
   connection=null;
   if(isHost)remoteInput={};
+  // Preserve the actionable room-busy message after the rejected data channel closes.
+  if(rejectedAsBusy)return;
   setNet('Связь с другим игроком потеряна.');
   if(role!=='menu'&&match)announce('СОЕДИНЕНИЕ ПОТЕРЯНО',4);
  });
