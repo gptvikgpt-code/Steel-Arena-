@@ -61,7 +61,7 @@ for(const b of document.querySelectorAll('[data-pick]')){
  b.addEventListener('click',()=>select(b.dataset.pick,b.dataset.value));
 }
 const nickInput=$('player-nick');
-const cleanNick=value=>String(value||'').trim().replace(/[<>\\x00-\\x1f]/g,'').slice(0,16)||'ИГРОК';
+const cleanNick=value=>String(value||'').trim().replace(/[<>\u0000-\u001F]/g,'').slice(0,16)||'ИГРОК';
 try{nickInput.value=localStorage.getItem('steel-arena-nick')||'ИГРОК'}catch(_){nickInput.value='ИГРОК'}
 nickInput.addEventListener('change',()=>{nickInput.value=cleanNick(nickInput.value);try{localStorage.setItem('steel-arena-nick',nickInput.value)}catch(_){}});
 const myNick=()=>cleanNick(nickInput.value);
