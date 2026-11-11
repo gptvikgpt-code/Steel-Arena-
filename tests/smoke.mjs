@@ -105,6 +105,23 @@ window.__arenaRenderProbe = () => {
     assert.equal(await page.locator('#fighter-list .pick').count(), 6);
     assert.equal(await page.locator('#mobile-controls [data-key]').count(), 8, 'All 8 touch action buttons must be present');
     assert.equal(await page.locator('#move-joystick').count(), 1, 'Movement joystick must be present');
+    // Use Playwright's touch API (not a manually constructed PointerEvent) to
+    // prove both the joystick and an action button receive touch-originated
+    // pointer input in the Android-like Chromium and iPhone-like WebKit contexts.
+    for (const selector of ['#move-joystick', '#mobile-controls [data-key="block"]']) {
+      await page.locator(selector).evaluate(el => {
+        window.__arenaTouchPointerType = null;
+        el.addEventListener('pointerdown', event => {
+          window.__arenaTouchPointerType = event.pointerType;
+        }, { once: true });
+      });
+      await page.locator(selector).tap();
+      assert.equal(
+        await page.evaluate(() => window.__arenaTouchPointerType),
+        'touch',
+        `Playwright touchscreen tap must reach ${selector} as pointerType=touch`
+      );
+    }
     assert.equal(await page.locator('#turn-urls').count(), 1, 'Optional TURN URL input must be present');
     assert.equal(await page.locator('#turn-username').count(), 1, 'Optional TURN username input must be present');
     assert.equal(await page.locator('#turn-credential').count(), 1, 'Optional TURN credential input must be present');
