@@ -141,6 +141,22 @@ try {
   assert.equal(state.arena, 'garden');
   assert.equal(state.role, role);
   assert.ok(await page.locator('#mobile-controls').isVisible());
+  // Verify real touch-originated browser input before the longer movement and
+  // damage scenario. This is still emulated touch, not a physical phone.
+  for (const selector of ['#move-joystick', '#mobile-controls [data-key="block"]']) {
+    await page.locator(selector).evaluate(el => {
+      window.__arenaTouchPointerType = null;
+      el.addEventListener('pointerdown', event => {
+        window.__arenaTouchPointerType = event.pointerType;
+      }, { once: true });
+    });
+    await page.locator(selector).tap();
+    assert.equal(
+      await page.evaluate(() => window.__arenaTouchPointerType),
+      'touch',
+      `Touchscreen tap must reach ${selector} as pointerType=touch`
+    );
+  }
   const pad = page.locator('#move-joystick');
   // Synchronize the independent runners: the guest waits until the host has
   // begun moving, so it cannot finish its approach before the host starts.
