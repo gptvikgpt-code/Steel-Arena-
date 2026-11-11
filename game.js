@@ -426,9 +426,12 @@ function setHandlers(c,isHost){
   if(!isHost){setNet('Связь установлена, ждём начала боя…');send({t:'hello',style:choice,weapon:weaponChoice,nick:myNick()})}
  });
  c.on('data',msg=>{
-  if(!msg||typeof msg!=='object')return;
+  // Ignore late packets from a connection that has already been replaced or closed.
+  if(connection!==c||!msg||typeof msg!=='object')return;
   if(isHost){
    if(msg.t==='hello'){
+    // A room is a single-match slot. Duplicate handshakes must not restart an active fight.
+    if(match){send({t:'busy'});return;}
     const guest=classes[msg.style]?msg.style:'ninja';
     const guestNick=cleanNick(msg.nick||'ГОСТЬ');
     const guestWeapon=equipped(msg.weapon).id;
@@ -449,6 +452,10 @@ function setHandlers(c,isHost){
    }
    if(msg.t==='rematch'&&match?.phase==='finished'){const [p1,p2]=players;const firstNick=p1.nick,secondNick=p2.nick;newMatch(p1.style,p2.style,p1.weapon,p2.weapon);players[0].nick=firstNick;players[1].nick=secondNick;players[0].team='host';players[1].team='guest';send({t:'start',mode,arena,first:p1.style,second:p2.style,firstWeapon:p1.weapon,secondWeapon:p2.weapon,firstNick,secondNick})}
   }else{
+   if(msg.t==='busy'){
+    setNet('Комната уже занята. Попроси хозяина создать новую комнату.');
+    return;
+   }
    if(msg.t==='start'){
     mode=['duel','platform','endless'].includes(msg.mode)?msg.mode:'endless';
     arena='garden';
@@ -479,7 +486,16 @@ function createRoom(){
  peer=usePeer('steel-arena-'+code.toLowerCase());
  if(!peer){role='menu';return}
  peer.on('open',()=>setNet('Комната создана. Передай код другу и ожидай подключение.'));
- peer.on('connection',c=>{if(connection?.open){c.close();return}setHandlers(c,true)});
+ peer.on('connection',c=>{
+  // Reserve the room as soon as the first incoming connection arrives, even
+  // before its data channel opens. This prevents a second guest replacing it.
+  if(connection){
+   c.on('open',()=>{try{c.send({t:'busy'});}catch(_){}setTimeout(()=>{try{c.close()}catch(_){}},150)});
+   setTimeout(()=>{try{c.close()}catch(_){}},5000);
+   return;
+  }
+  setHandlers(c,true);
+ });
  peer.on('error',e=>setNet(networkErrorText(e)));
 }
 function joinRoom(){
