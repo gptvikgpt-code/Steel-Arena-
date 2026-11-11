@@ -196,8 +196,32 @@ window.__arenaRenderProbe = () => {
     }
     const hostHp = Number.parseFloat(await host.locator('#hp2').evaluate(el => el.style.width));
     const guestHp = Number.parseFloat(await guest.locator('#hp2').evaluate(el => el.style.width));
-    assert.ok(hostHp < 100 && guestHp < 100, 'Both players must observe damage');
+    assert.ok(hostHp < 100 && guestHp < 100, 'Both players must observe host-to-guest damage');
     assert.ok(Math.abs(hostHp - guestHp) <= 15, 'Guest health must follow authoritative host health');
+
+    // Verify the reverse direction too: the guest must be able to move into
+    // range, attack, and have the host replicate the resulting host damage.
+    await host.waitForTimeout(350);
+    await steer(guest, 'left');
+    await host.waitForFunction(() => {
+      const state = window.__arenaSmoke?.();
+      return state?.remote?.axisX < -0.7
+        && state?.fighters?.length === 2
+        && state.fighters[1].x - state.fighters[0].x < 1.85;
+    }, null, { timeout: 12000 });
+    await stopSteering(guest);
+    await host.waitForTimeout(250);
+    await press(guest, 'light');
+    try {
+      await host.waitForFunction(() => parseFloat(document.querySelector('#hp1')?.style.width || '100') < 100, null, { timeout: 7000 });
+      await guest.waitForFunction(() => parseFloat(document.querySelector('#hp1')?.style.width || '100') < 100, null, { timeout: 7000 });
+    } finally {
+      await release(guest, 'light');
+    }
+    const hostOwnHp = Number.parseFloat(await host.locator('#hp1').evaluate(el => el.style.width));
+    const guestOwnHp = Number.parseFloat(await guest.locator('#hp1').evaluate(el => el.style.width));
+    assert.ok(hostOwnHp < 100 && guestOwnHp < 100, 'Both clients must observe guest-to-host damage');
+    assert.ok(Math.abs(hostOwnHp - guestOwnHp) <= 15, 'Guest damage must follow authoritative host state');
     if (errors.length) throw new Error('Browser errors during active match:\\n' + errors.join('\\n'));
     if (mode === 'platform') {
       await host.evaluate(() => window.__arenaSmokeDropOnPlatform());
