@@ -178,9 +178,12 @@ try {
     await attack.evaluate(el => el.dispatchEvent(new PointerEvent('pointerup', { bubbles: true, pointerId: 40 })));
     // First prove host -> guest damage reached the guest before asking it to retaliate.
     await page.waitForFunction(() => window.__arenaCrossAckReceived === true, null, { timeout: 20000 });
+    // Reset the acknowledgement latch. The host must stay alive until the guest
+    // confirms that the reverse-direction health update has arrived.
+    await page.evaluate(() => { window.__arenaCrossAckReceived = false; });
     // Then prove guest -> host damage is simulated authoritatively and replicated back.
     await page.waitForFunction(() => parseFloat(document.querySelector('#hp1')?.style.width || '100') < 100, null, { timeout: 45000 });
-    await page.evaluate(() => window.__arenaCrossAck());
+    await page.waitForFunction(() => window.__arenaCrossAckReceived === true, null, { timeout: 20000 });
   } else {
     await page.waitForFunction(() => parseFloat(document.querySelector('#hp2')?.style.width || '100') < 100, null, { timeout: 45000 });
     await page.evaluate(() => window.__arenaCrossAck());
@@ -204,7 +207,8 @@ try {
     await attack.evaluate(el => el.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true, pointerId: 42 })));
     await page.waitForFunction(() => parseFloat(document.querySelector('#hp1')?.style.width || '100') < 100, null, { timeout: 12000 });
     await attack.evaluate(el => el.dispatchEvent(new PointerEvent('pointerup', { bubbles: true, pointerId: 42 })));
-    await page.waitForFunction(() => window.__arenaCrossAckReceived === true, null, { timeout: 20000 });
+    // Acknowledge only after the authoritative host health update is visible here.
+    await page.evaluate(() => window.__arenaCrossAck());
   }
   if (mode === 'platform' && role === 'host') {
     // Deterministically drop the authoritative fighter onto the left platform.
