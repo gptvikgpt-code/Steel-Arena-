@@ -34,13 +34,39 @@ try {
   iphone = await webkit.launch({ headless: true });
   const a = await android.newContext({ viewport: { width: 915, height: 412 }, isMobile: true, hasTouch: true });
   const i = await iphone.newContext({ viewport: { width: 844, height: 390 }, isMobile: true, hasTouch: true });
-  // Real renderer boot is checked separately on both browser engines.
-  // The multiplayer simulation then uses a no-op graphics adapter so headless
-  // software WebGL cannot stall requestAnimationFrame and distort game time.
-  for (const context of [a, i]) {
+  // Render certification is separate from multiplayer timing: keep the real
+  // Three.js renderer active and prove it creates a WebGL2 frame with geometry
+  // on both browser engines before the network simulation swaps in its adapter.
+  for (const [label, context] of [['Chromium', a], ['WebKit', i]]) {
     const renderPage = await context.newPage();
+    renderPage.on('pageerror', err => errors.push(`${label} renderer: ${err.message}`));
+    await renderPage.route('**/game.js*', async route => {
+      const response = await route.fetch();
+      assert.ok(response.ok(), `${label} game.js must be available for renderer certification`);
+      const source = await response.text();
+      const probe = `
+window.__arenaRenderProbe = () => {
+  const renderer = gfx.renderer;
+  const gl = renderer.getContext();
+  return {
+    frame: renderer.info.render.frame,
+    calls: renderer.info.render.calls,
+    triangles: renderer.info.render.triangles,
+    glVersion: gl.getParameter(gl.VERSION)
+  };
+};
+`;
+      await route.fulfill({ response, body: source + probe });
+    });
     await renderPage.goto(url, { waitUntil: 'domcontentloaded' });
-    await renderPage.waitForFunction(() => document.querySelector('#scene')?.width > 400, null, { timeout: 45000 });
+    await renderPage.waitForFunction(() => {
+      const probe = window.__arenaRenderProbe?.();
+      return probe?.frame > 0 && probe.calls > 0 && probe.triangles > 0;
+    }, null, { timeout: 45000 });
+    const probe = await renderPage.evaluate(() => window.__arenaRenderProbe());
+    assert.match(probe.glVersion, /WebGL 2\\.0/, `${label} must create a WebGL 2 context`);
+    assert.ok(probe.triangles > 0, `${label} must render actual 3D geometry`);
+    console.log(`${label} real renderer PASS: frame ${probe.frame}, ${probe.triangles} triangles, ${probe.glVersion}`);
     await renderPage.close();
   }
   const mockGraphics = `export function createGraphics(canvas) {
