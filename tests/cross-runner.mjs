@@ -142,6 +142,14 @@ try {
   assert.equal(state.role, role);
   assert.ok(await page.locator('#mobile-controls').isVisible());
   const pad = page.locator('#move-joystick');
+  // Synchronize the independent runners: the guest waits until the host has
+  // begun moving, so it cannot finish its approach before the host starts.
+  if (role === 'guest') {
+    await page.waitForFunction(() => {
+      const f = window.__arenaCross?.()?.fighters;
+      return f?.length === 2 && f[0].x > -3.45;
+    }, null, { timeout: 20000 });
+  }
   await pad.evaluate((el, dir) => {
     const r = el.getBoundingClientRect();
     el.dispatchEvent(new PointerEvent('pointerdown', {
@@ -159,7 +167,7 @@ try {
   }
   await page.waitForFunction(() => {
     const f = window.__arenaCross?.()?.fighters;
-    return f?.length === 2 && f[1].x - f[0].x < 1.85;
+    return f?.length === 2 && Math.abs(f[1].x - f[0].x) < 1.85;
   }, null, { timeout: 45000 });
   await pad.evaluate(el => el.dispatchEvent(new PointerEvent('pointerup', { bubbles: true, pointerId: 39 })));
   await page.waitForTimeout(350);
@@ -188,7 +196,7 @@ try {
     });
     await page.waitForFunction(() => {
       const s = window.__arenaCross?.();
-      return s?.local?.axisX < -.7 && s?.fighters?.length === 2 && s.fighters[1].x - s.fighters[0].x < 1.85;
+      return s?.local?.axisX < -.7 && s?.fighters?.length === 2 && Math.abs(s.fighters[1].x - s.fighters[0].x) < 1.85;
     }, null, { timeout: 30000 });
     await pad.evaluate(el => el.dispatchEvent(new PointerEvent('pointerup', { bubbles: true, pointerId: 41 })));
     await page.waitForTimeout(250);
