@@ -1,0 +1,8 @@
+services:
+  - type: web
+    name: mushroom-duo-server
+    runtime: node
+    rootDir: mushroom-duo/server
+    buildCommand: npm install
+    startCommand: npm start
+    plan: free
