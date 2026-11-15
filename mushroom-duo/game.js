@@ -20,7 +20,7 @@ document.querySelectorAll('[data-key]').forEach(b=>{const k=b.dataset.key;b.addE
 function connect(code,create){
  const url=serverEl.value.trim();
  if(!url){statusEl.textContent='Сначала укажи адрес игрового сервера';return}
- if(!/^wss?:\\/\\//i.test(url)){statusEl.textContent='Адрес должен начинаться с ws:// или wss://';return}
+ if(!(url.startsWith('ws://')||url.startsWith('wss://'))){statusEl.textContent='Адрес должен начинаться с ws:// или wss://';return}
  if(ws){ws.close();ws=null}
  remote=null;players=1;playerId=0;document.querySelector('#players').textContent=1;
  let socket;
