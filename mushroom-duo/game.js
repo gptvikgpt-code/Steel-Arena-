@@ -17,6 +17,34 @@ function setKey(k,v){if(k==='left'||k==='right')keys[k]=v;if(k==='jump')keys.jum
 window.addEventListener('keydown',e=>{if(['ArrowLeft','ArrowRight',' ','ArrowUp'].includes(e.key))e.preventDefault();if(e.key==='ArrowLeft')setKey('left',true);if(e.key==='ArrowRight')setKey('right',true);if(e.key===' '||e.key==='ArrowUp')setKey('jump',true)});
 window.addEventListener('keyup',e=>{if(e.key==='ArrowLeft')setKey('left',false);if(e.key==='ArrowRight')setKey('right',false);if(e.key===' '||e.key==='ArrowUp')setKey('jump',false)});
 document.querySelectorAll('[data-key]').forEach(b=>{const k=b.dataset.key;b.addEventListener('pointerdown',e=>{e.preventDefault();setKey(k,true)});['pointerup','pointercancel','pointerleave'].forEach(ev=>b.addEventListener(ev,()=>setKey(k,false)))});
-function connect(code,create){const url=serverEl.value.trim();if(!url){statusEl.textContent='Укажи адрес игрового сервера';return}try{ws=new WebSocket(url)}catch(e){statusEl.textContent='Неверный адрес сервера';return}statusEl.textContent='Подключение…';ws.onopen=()=>ws.send(JSON.stringify({type:create?'create':'join',code}));ws.onmessage=e=>{const m=JSON.parse(e.data);if(m.type==='room'){roomCode=m.code;roomEl.value=m.code;playerId=m.playerId;players=m.players;remote=players>1?{x:110,y:420}:null;document.querySelector('#players').textContent=players;statusEl.textContent='Комната '+m.code}if(m.type==='peer'){remote={x:Number.isFinite(m.x)?m.x:110,y:Number.isFinite(m.y)?m.y:420};players=2;document.querySelector('#players').textContent=2}if(m.type==='state'&&m.playerId!==playerId){remote={x:m.x,y:m.y};players=2;document.querySelector('#players').textContent=2}if(m.type==='peer-left'){remote=null;players=1;document.querySelector('#players').textContent=1}if(m.type==='error'){statusEl.textContent=m.message||'Ошибка комнаты'}};ws.onclose=()=>{statusEl.textContent='Соединение закрыто';remote=null;players=1;document.querySelector('#players').textContent=1};ws.onerror=()=>statusEl.textContent='Ошибка сервера'} 
+function connect(code,create){
+ const url=serverEl.value.trim();
+ if(!url){statusEl.textContent='Сначала укажи адрес игрового сервера';return}
+ if(!/^wss?:\\/\\//i.test(url)){statusEl.textContent='Адрес должен начинаться с ws:// или wss://';return}
+ if(ws){ws.close();ws=null}
+ remote=null;players=1;playerId=0;document.querySelector('#players').textContent=1;
+ let socket;
+ try{socket=new WebSocket(url);ws=socket}catch(e){statusEl.textContent='Неверный адрес сервера';return}
+ statusEl.textContent='Подключение…';
+ socket.onopen=()=>{if(ws===socket)socket.send(JSON.stringify({type:create?'create':'join',code}))};
+ socket.onmessage=e=>{
+  if(ws!==socket)return;
+  let m;try{m=JSON.parse(e.data)}catch{return}
+  if(m.type==='room'){
+   roomCode=m.code;roomEl.value=m.code;playerId=m.playerId;players=m.players;
+   document.querySelector('#players').textContent=players;statusEl.textContent='Комната '+m.code+' · ожидаем второго игрока';
+  }else if(m.type==='peer'){
+   remote={x:Number.isFinite(m.x)?m.x:110,y:Number.isFinite(m.y)?m.y:420};
+   players=2;document.querySelector('#players').textContent=2;statusEl.textContent='Оба игрока в комнате';
+  }else if(m.type==='state'&&m.playerId!==playerId){
+   if(Number.isFinite(m.x)&&Number.isFinite(m.y))remote={x:m.x,y:m.y};
+   players=2;document.querySelector('#players').textContent=2;
+  }else if(m.type==='peer-left'){
+   remote=null;players=1;document.querySelector('#players').textContent=1;statusEl.textContent='Игрок отключился';
+  }else if(m.type==='error'){statusEl.textContent=m.message||'Ошибка комнаты';}
+ };
+ socket.onclose=()=>{if(ws!==socket)return;ws=null;statusEl.textContent='Соединение закрыто';remote=null;players=1;document.querySelector('#players').textContent=1};
+ socket.onerror=()=>{if(ws===socket)statusEl.textContent='Не удалось связаться с сервером'};
+}
 document.querySelector('#create').onclick=()=>connect('',true);document.querySelector('#join').onclick=()=>{if(roomEl.value.length!==6){statusEl.textContent='Нужен код из 6 цифр';return}connect(roomEl.value,false)};
 draw();step();
