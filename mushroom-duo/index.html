@@ -1,0 +1,8 @@
+<!doctype html>
+<html lang="ru"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no"><meta name="theme-color" content="#17251d"><title>Mushroom Duo</title><link rel="stylesheet" href="style.css"></head>
+<body><main><header><div><small>КО-ОП ПЛАТФОРМЕР</small><h1>🍄 Mushroom Duo</h1></div><div id="status">Локальная игра</div></header>
+<section class="lobby"><input id="room" maxlength="6" inputmode="numeric" placeholder="Код комнаты"><button id="create">Создать комнату</button><button id="join">Войти</button><input id="server" placeholder="Адрес сервера (wss://…)" aria-label="Адрес сервера"></section>
+<div class="hud"><span>🪙 <b id="coins">0</b></span><span>Игроков: <b id="players">1</b>/2</span><span id="hint">Собирайте монеты вместе!</span></div>
+<canvas id="game" width="960" height="540" aria-label="Игровое поле"></canvas>
+<div class="touch"><div><button data-key="left">◀</button><button data-key="right">▶</button></div><button data-key="jump">ПРЫЖОК ⤒</button></div>
+<footer>ПК: ← → и пробел · Телефон: экранные кнопки</footer></main><script src="game.js"></script></body></html>
